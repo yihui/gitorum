@@ -39,7 +39,7 @@ Set `GITHUB_REPO_OWNER` and `GITHUB_REPO_NAME` to point at a repository with Dis
 - [SvelteKit](https://kit.svelte.dev/) — SSR framework
 - [Tailwind CSS v4](https://tailwindcss.com/) — styling
 - [Octokit GraphQL](https://github.com/octokit/graphql.js) — GitHub API client
-- [marked](https://marked.js.org/) + [DOMPurify](https://github.com/cure53/DOMPurify) — Markdown rendering with XSS protection
+- [marked](https://marked.js.org/) — Markdown rendering
 
 ## License
 

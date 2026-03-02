@@ -103,8 +103,8 @@ replying = false;
 </div>
 
 <!-- Original post -->
-<article class="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-<div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
+<article class="rounded-lg border border-amber-200 bg-amber-50 dark:border-gray-800 dark:bg-gray-900">
+<div class="border-b border-amber-100 px-6 py-4 dark:border-gray-800">
 <div class="flex flex-wrap items-start gap-2">
 <h1 class="flex-1 text-xl font-bold text-gray-900 dark:text-gray-100">{data.thread.title}</h1>
 {#if data.thread.isAnswered}
@@ -139,7 +139,7 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 </div>
 
 {#if activeGroups(data.thread.reactionGroups).length > 0}
-<div class="flex flex-wrap gap-2 border-t border-gray-200 px-6 py-3 dark:border-gray-800">
+<div class="flex flex-wrap gap-2 border-t border-amber-100 px-6 py-3 dark:border-gray-800">
 {#each activeGroups(data.thread.reactionGroups) as group}
 {@const users = group.reactors?.nodes?.filter((u: any) => u?.login) ?? []}
 {@const extra = (group.reactors?.totalCount ?? 0) - users.length}
@@ -171,8 +171,8 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 
 <div class="space-y-4">
 {#each data.thread.comments.nodes as comment}
-<article class="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-<div class="flex items-center gap-3 border-b border-gray-100 px-5 py-3 dark:border-gray-800">
+<article class="rounded-lg border border-amber-200 bg-amber-50 dark:border-gray-800 dark:bg-gray-900">
+<div class="flex items-center gap-3 border-b border-amber-100 px-5 py-3 dark:border-gray-800">
 {#if comment.author}
 <img src={comment.author.avatarUrl} alt={comment.author.login} class="h-7 w-7 rounded-full" />
 <a href={comment.author.url} target="_blank" class="text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100">
@@ -190,7 +190,7 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 </div>
 
 {#if activeGroups(comment.reactionGroups).length > 0}
-<div class="flex flex-wrap gap-2 border-t border-gray-100 px-5 py-2 dark:border-gray-800">
+<div class="flex flex-wrap gap-2 border-t border-amber-100 px-5 py-2 dark:border-gray-800">
 {#each activeGroups(comment.reactionGroups) as group}
 {@const users = group.reactors?.nodes?.filter((u: any) => u?.login) ?? []}
 {@const extra = (group.reactors?.totalCount ?? 0) - users.length}
@@ -209,9 +209,9 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 {/if}
 
 {#if comment.replies.nodes.length > 0}
-<div class="border-t border-gray-100 dark:border-gray-800">
+<div class="border-t border-amber-100 dark:border-gray-800">
 {#each comment.replies.nodes as reply}
-<div class="ml-6 border-l-2 border-gray-200 py-3 pl-4 dark:border-gray-700">
+<div class="ml-6 border-l-2 border-amber-100 py-3 pl-4 dark:border-gray-700">
 <div class="flex items-center gap-2">
 {#if reply.author}
 <img src={reply.author.avatarUrl} alt={reply.author.login} class="h-5 w-5 rounded-full" />
@@ -246,17 +246,17 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 {/if}
 
 <!-- Reply form -->
-<div class="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+<div class="rounded-lg border border-amber-200 bg-amber-50 p-5 dark:border-gray-800 dark:bg-gray-900">
 {#if data.user}
 <h3 class="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Post a Reply</h3>
-<div class="mb-2 flex gap-2 border-b border-gray-200 dark:border-gray-700">
+<div class="mb-2 flex gap-2 border-b border-amber-100 dark:border-gray-700">
 <button type="button" onclick={() => showPreview = false}
 class="px-3 py-1.5 text-sm {!showPreview ? 'border-b-2 border-orange-500 font-medium text-orange-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}">Write</button>
 <button type="button" onclick={() => showPreview = true}
 class="px-3 py-1.5 text-sm {showPreview ? 'border-b-2 border-orange-500 font-medium text-orange-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}">Preview</button>
 </div>
 {#if showPreview}
-<div class="prose dark:prose-invert min-h-[120px] rounded border border-gray-200 p-3 dark:border-gray-700">
+<div class="prose dark:prose-invert min-h-[120px] rounded border border-amber-100 p-3 dark:border-gray-700">
 {#if replyBody.trim()}
 {@html renderMarkdown(replyBody)}
 {:else}
