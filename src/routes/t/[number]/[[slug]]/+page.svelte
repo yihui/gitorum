@@ -156,6 +156,7 @@ function cancelReply() {
 activeReplyId = null;
 replyBody = '';
 replyError = '';
+showReplyPreview = false;
 }
 </script>
 
