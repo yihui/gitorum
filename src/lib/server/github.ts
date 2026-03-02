@@ -654,8 +654,9 @@ export async function fetchLatestDiscussions(first: number = 30, orderBy: string
 }
 
 /**
- * Fetch top or trending discussions globally (or filtered by category slug) using
- * GitHub's search API which supports reaction-count sorting.
+ * Fetch top or trending discussions globally (or filtered by category slug).
+ * Uses the GitHub REST /search/discussions endpoint with sort=reactions because
+ * the GraphQL discussion search does not support reaction-count ordering.
  * sort: 'top' = all-time most reactions, 'trending' = most reactions in past 30 days.
  */
 export async function fetchTopDiscussions(
@@ -674,37 +675,47 @@ export async function fetchTopDiscussions(
 	const owner = getRepoOwner();
 	const repo = getRepoName();
 
-	let searchQuery = `repo:${owner}/${repo} type:discussion sort:reactions`;
-	if (categorySlug) searchQuery += ` category:${categorySlug}`;
+	let q = `repo:${owner}/${repo}`;
+	if (categorySlug) q += ` category:${categorySlug}`;
 	if (sort === 'trending') {
 		const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 		const monthAgo = new Date(Date.now() - THIRTY_DAYS_MS).toISOString().slice(0, 10);
-		searchQuery += ` created:>=${monthAgo}`;
+		q += ` created:>=${monthAgo}`;
 	}
 
-	const result: any = await executeGraphQLRead(token, (gql) =>
-		gql(
-			`query($searchQuery: String!, $first: Int!) {
-				search(query: $searchQuery, type: DISCUSSION, first: $first) {
-					nodes {
-						... on Discussion {
-							id number title createdAt isAnswered
-							author { login avatarUrl url }
-							category { id name slug emoji emojiHTML }
-							labels(first: 10) { nodes { name color } }
-							comments { totalCount }
-							reactions { totalCount }
-						}
-					}
-				}
-			}`,
-			{ searchQuery, first }
-		)
-	);
+	const params = new URLSearchParams({ q, sort: 'reactions', order: 'desc', per_page: String(first) });
+	const res = await fetch(`https://api.github.com/search/discussions?${params}`, {
+		headers: {
+			Authorization: `Bearer ${token}`,
+			Accept: 'application/vnd.github+json',
+			'X-GitHub-Api-Version': '2022-11-28',
+			'User-Agent': 'Gitorum'
+		}
+	});
 
-	const discussions = (result.search.nodes as any[])
-		.filter((n: any) => n?.number)
-		.map((d: any) => { parseCategoryEmoji(d.category); return d; });
+	if (!res.ok) {
+		const text = await res.text();
+		if (res.status === 403 || res.status === 429) throw new RateLimitError();
+		throw new Error(`GitHub search/discussions error ${res.status}: ${text}`);
+	}
+
+	const data = await res.json();
+	const discussions = (data.items as any[]).map((item: any) => ({
+		id: item.node_id ?? '',
+		number: item.number,
+		title: item.title,
+		createdAt: item.created_at,
+		isAnswered: item.answered_by != null,
+		author: item.user
+			? { login: item.user.login, avatarUrl: item.user.avatar_url, url: item.user.html_url }
+			: null,
+		category: item.category
+			? { id: item.category.id, name: item.category.name, slug: item.category.slug, emoji: item.category.emoji }
+			: null,
+		labels: { nodes: (item.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })) },
+		comments: { totalCount: item.comments ?? 0 },
+		reactions: { totalCount: item.reactions?.total_count ?? 0 }
+	}));
 
 	setCache(cacheKey, discussions, 60);
 	return discussions;

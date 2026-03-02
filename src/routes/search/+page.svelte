@@ -34,12 +34,12 @@
 	{/if}
 
 	{#if data.results.length > 0}
-		<div class="divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
+		<div class="divide-y divide-amber-100 rounded-lg border border-amber-200 bg-amber-50 dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
 			{#each data.results as thread}
 				{#if thread.number}
 					<a
 						href="/t/{thread.number}"
-						class="flex items-center gap-4 px-4 py-3 transition hover:bg-gray-50 dark:hover:bg-gray-800/50"
+						class="flex items-center gap-4 px-4 py-3 transition hover:bg-amber-100/50 dark:hover:bg-gray-800/50"
 					>
 						{#if thread.author}
 							<img src={thread.author.avatarUrl} alt={thread.author.login} class="h-9 w-9 rounded-full" />
@@ -82,7 +82,7 @@
 			</div>
 		{/if}
 	{:else if data.query}
-		<div class="rounded-lg border border-gray-200 bg-white p-8 text-center dark:border-gray-800 dark:bg-gray-900">
+		<div class="rounded-lg border border-amber-200 bg-amber-50 p-8 text-center dark:border-gray-800 dark:bg-gray-900">
 			<p class="text-gray-500 dark:text-gray-400">No results found.</p>
 		</div>
 	{/if}
