@@ -103,25 +103,27 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 </div>
 
 {#if activeGroups(data.thread.reactionGroups).length > 0}
-<div class="border-t border-amber-100 px-6 py-3 dark:border-gray-800">
-<div class="flex flex-wrap gap-x-3 gap-y-1.5">
-{#each activeGroups(data.thread.reactionGroups) as group}
+{@const rxGroups = activeGroups(data.thread.reactionGroups)}
+{@const hasUsers = rxGroups.some((g: any) => (g.reactors?.nodes?.filter((u: any) => u?.login) ?? []).length > 0)}
+<div class="group/rx border-t border-amber-100 px-6 py-3 dark:border-gray-800">
+{#if hasUsers}<input type="checkbox" id="rx-thread" class="peer/rx sr-only">{/if}
+<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+{#each rxGroups as group}
+<span class="rounded-full bg-gray-100 px-2.5 py-0.5 text-sm dark:bg-gray-800">{reactionEmoji(group.content)} <span class="font-medium">{group.reactors.totalCount}</span></span>
+{/each}
+{#if hasUsers}<label for="rx-thread" aria-label="Toggle reactor list" class="inline-block cursor-pointer text-xs text-gray-400 transition-transform hover:text-gray-600 group-has-[input:checked]/rx:rotate-90">▶</label>{/if}
+</div>
+{#if hasUsers}
+<div class="mt-1.5 hidden space-y-1 peer-checked/rx:block">
+{#each rxGroups as group}
 {@const users = group.reactors?.nodes?.filter((u: any) => u?.login) ?? []}
 {@const extra = (group.reactors?.totalCount ?? 0) - users.length}
 {#if users.length > 0}
-<details class="group/rx">
-<summary class="flex cursor-pointer list-none items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-sm dark:bg-gray-800">
-{reactionEmoji(group.content)} <span class="font-medium">{group.reactors.totalCount}</span><span class="ml-0.5 inline-block text-xs text-gray-400 transition-transform group-open/rx:rotate-90">▶</span>
-</summary>
-<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{#each users as u, i}{#if i > 0}{', '}{/if}<a href="https://github.com/{u.login}" target="_blank" rel="noopener" class="hover:underline">{u.login}</a>{/each}{#if extra > 0}{', and '}{extra}{' more'}{/if}</p>
-</details>
-{:else}
-<span class="rounded-full bg-gray-100 px-2.5 py-0.5 text-sm dark:bg-gray-800">
-{reactionEmoji(group.content)} <span class="font-medium">{group.reactors.totalCount}</span>
-</span>
+<p class="text-xs text-gray-500 dark:text-gray-400">{reactionEmoji(group.content)}: {#each users as u, i}{#if i > 0}{', '}{/if}<a href="https://github.com/{u.login}" target="_blank" rel="noopener" class="hover:underline">{u.login}</a>{/each}{#if extra > 0}{', and '}{extra}{' more'}{/if}</p>
 {/if}
 {/each}
 </div>
+{/if}
 </div>
 {/if}
 </article>
@@ -138,7 +140,7 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 </div>
 
 <div class="space-y-4">
-{#each data.thread.comments.nodes as comment}
+{#each data.thread.comments.nodes as comment, ci}
 <article class="rounded-lg border border-amber-200 bg-white dark:border-gray-800 dark:bg-gray-900">
 <div class="flex items-center gap-3 border-b border-amber-100 px-5 py-3 dark:border-gray-800">
 {#if comment.author}
@@ -158,25 +160,27 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 </div>
 
 {#if activeGroups(comment.reactionGroups).length > 0}
-<div class="border-t border-amber-100 px-5 py-2 dark:border-gray-800">
-<div class="flex flex-wrap gap-x-3 gap-y-1.5">
-{#each activeGroups(comment.reactionGroups) as group}
+{@const rxGroups = activeGroups(comment.reactionGroups)}
+{@const hasUsers = rxGroups.some((g: any) => (g.reactors?.nodes?.filter((u: any) => u?.login) ?? []).length > 0)}
+<div class="group/rx border-t border-amber-100 px-5 py-2 dark:border-gray-800">
+{#if hasUsers}<input type="checkbox" id="rx-c{ci}" class="peer/rx sr-only">{/if}
+<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+{#each rxGroups as group}
+<span class="rounded-full bg-gray-100 px-2.5 py-0.5 text-sm dark:bg-gray-800">{reactionEmoji(group.content)} <span class="font-medium">{group.reactors.totalCount}</span></span>
+{/each}
+{#if hasUsers}<label for="rx-c{ci}" aria-label="Toggle reactor list" class="inline-block cursor-pointer text-xs text-gray-400 transition-transform hover:text-gray-600 group-has-[input:checked]/rx:rotate-90">▶</label>{/if}
+</div>
+{#if hasUsers}
+<div class="mt-1 hidden space-y-1 peer-checked/rx:block">
+{#each rxGroups as group}
 {@const users = group.reactors?.nodes?.filter((u: any) => u?.login) ?? []}
 {@const extra = (group.reactors?.totalCount ?? 0) - users.length}
 {#if users.length > 0}
-<details class="group/rx">
-<summary class="flex cursor-pointer list-none items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-sm dark:bg-gray-800">
-{reactionEmoji(group.content)} <span class="font-medium">{group.reactors.totalCount}</span><span class="ml-0.5 inline-block text-xs text-gray-400 transition-transform group-open/rx:rotate-90">▶</span>
-</summary>
-<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{#each users as u, i}{#if i > 0}{', '}{/if}<a href="https://github.com/{u.login}" target="_blank" rel="noopener" class="hover:underline">{u.login}</a>{/each}{#if extra > 0}{', and '}{extra}{' more'}{/if}</p>
-</details>
-{:else}
-<span class="rounded-full bg-gray-100 px-2.5 py-0.5 text-sm dark:bg-gray-800">
-{reactionEmoji(group.content)} <span class="font-medium">{group.reactors.totalCount}</span>
-</span>
+<p class="text-xs text-gray-500 dark:text-gray-400">{reactionEmoji(group.content)}: {#each users as u, i}{#if i > 0}{', '}{/if}<a href="https://github.com/{u.login}" target="_blank" rel="noopener" class="hover:underline">{u.login}</a>{/each}{#if extra > 0}{', and '}{extra}{' more'}{/if}</p>
 {/if}
 {/each}
 </div>
+{/if}
 </div>
 {/if}
 
