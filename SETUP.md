@@ -146,20 +146,6 @@ This allows users to sign in and create threads/replies.
    BASE_URL=https://yourdomain.com
    ```
 
-### About the `gh_token` cookie
-
-After sign-in, the user's GitHub OAuth token is stored in a browser cookie named `gh_token`. You may see its value (e.g. `gho_xxxx`) in the browser's DevTools under Network → Request Headers → Cookie. This is expected behaviour — DevTools shows every header the browser sends, including cookies.
-
-Key protections in place:
-
-- **`httpOnly: true`** — the cookie cannot be read by any JavaScript on the page (no `document.cookie` access), which prevents it from being stolen by XSS attacks
-- **`secure: true`** — the cookie is only sent over HTTPS, preventing network interception
-- **`sameSite: lax`** — the cookie is not sent on cross-site POST requests, preventing CSRF attacks
-
-**What the token can actually do:** Gitorum requests the `public_repo` OAuth scope. Despite the name, this scope grants **write access** to public repositories, not just read access. A user with this token can create and edit discussions on your forum's behalf. If you are concerned, you can revoke a token at any time from [GitHub Settings → Applications → Authorized OAuth Apps](https://github.com/settings/applications).
-
-**Token lifetime:** The cookie is valid for 30 days. It is not short-lived. Users can explicitly sign out (which deletes the cookie), or GitHub can invalidate the token if the OAuth App is uninstalled or the user revokes access.
-
 ---
 
 ## 5. Caching Strategy
