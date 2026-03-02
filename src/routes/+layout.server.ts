@@ -18,6 +18,7 @@ export const load: LayoutServerLoad = async ({ locals, setHeaders }) => {
 		authError: locals.authError || null,
 		forumTitle: env.FORUM_TITLE || 'Gitorum',
 		forumLogoUrl: env.FORUM_LOGO_URL || '',
-		forumFooterHtml: footerHtml
+		forumFooterHtml: footerHtml,
+		repoOwner: env.GITHUB_REPO_OWNER || ''
 	};
 };

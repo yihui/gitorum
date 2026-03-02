@@ -858,7 +858,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 				`query($owner: String!, $repo: String!, $number: Int!) {
 					repository(owner: $owner, name: $repo) {
 						discussion(number: $number) {
-							id number title body bodyHTML createdAt isAnswered
+							id number title body bodyHTML createdAt isAnswered url
 							author { login avatarUrl url }
 							category { name slug }
 							labels(first: 10) { nodes { name color } }
@@ -873,7 +873,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 								totalCount
 								pageInfo { hasNextPage endCursor }
 								nodes {
-									id body bodyHTML createdAt
+									id body bodyHTML createdAt isMinimized url
 									author { login avatarUrl url }
 									reactionGroups {
 										content
@@ -884,7 +884,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 									}
 									replies(first: 20) {
 										nodes {
-											id body bodyHTML createdAt
+											id body bodyHTML createdAt url
 											author { login avatarUrl url }
 										}
 									}
@@ -897,6 +897,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 			)
 		);
 		const thread = result.repository.discussion;
+		thread.comments.nodes = thread.comments.nodes.filter((c: any) => !c.isMinimized);
 		const totalCommentPages = Math.max(1, Math.ceil(thread.comments.totalCount / COMMENTS_PER_PAGE));
 
 		// Cache cursor for page 2
@@ -966,7 +967,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 							totalCount
 							pageInfo { hasNextPage endCursor }
 							nodes {
-								id body bodyHTML createdAt
+								id body bodyHTML createdAt isMinimized url
 								author { login avatarUrl url }
 								reactionGroups {
 									content
@@ -977,7 +978,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 								}
 								replies(first: 20) {
 									nodes {
-										id body bodyHTML createdAt
+										id body bodyHTML createdAt url
 										author { login avatarUrl url }
 									}
 								}
@@ -990,6 +991,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 		)
 	);
 	const moreComments = commentsResult.repository.discussion.comments;
+	moreComments.nodes = moreComments.nodes.filter((c: any) => !c.isMinimized);
 	const totalCommentPages = Math.max(1, Math.ceil(moreComments.totalCount / COMMENTS_PER_PAGE));
 
 	// Cache cursor for next page.
@@ -1080,10 +1082,11 @@ export async function fetchLatestDiscussions(first: number = 30, orderBy: string
 			{ owner, repo, first, orderBy }
 		)
 	);
-	const discussions = result.repository.discussions.nodes.map((d: any) => {
-		parseCategoryEmoji(d.category);
-		return d;
-	});
+	const discussions = result.repository.discussions.nodes
+			.map((d: any) => {
+			parseCategoryEmoji(d.category);
+			return d;
+		});
 
 	setCache(cacheKey, discussions, 60);
 	return discussions;
@@ -1201,19 +1204,24 @@ export async function createDiscussion(
 	return result.createDiscussion.discussion;
 }
 
-export async function addComment(token: string, discussionId: string, body: string) {
+export async function addComment(token: string, discussionId: string, body: string, replyToId?: string | null) {
 	const gql = getUserClient(token);
 
+	const replyParam = replyToId ? ', $replyToId: ID' : '';
+	const replyInput = replyToId ? '\n\t\t\t\treplyToId: $replyToId' : '';
+	const variables: Record<string, unknown> = { discussionId, body };
+	if (replyToId) variables.replyToId = replyToId;
+
 	const result: any = await gql(
-		`mutation($discussionId: ID!, $body: String!) {
+		`mutation($discussionId: ID!, $body: String!${replyParam}) {
 			addDiscussionComment(input: {
 				discussionId: $discussionId
-				body: $body
+				body: $body${replyInput}
 			}) {
 				comment { id createdAt }
 			}
 		}`,
-		{ discussionId, body }
+		variables
 	);
 
 	return result.addDiscussionComment.comment;
