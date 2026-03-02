@@ -345,7 +345,7 @@ export async function fetchThreadsByCategory(
 						totalCount
 						pageInfo { hasNextPage endCursor }
 						nodes {
-							id number title createdAt isAnswered
+							id number title createdAt isAnswered state
 							author { login avatarUrl url }
 							labels(first: 10) { nodes { name color } }
 							comments { totalCount }
@@ -358,6 +358,7 @@ export async function fetchThreadsByCategory(
 		)
 	);
 	const discussions = result.repository.discussions;
+	discussions.nodes = discussions.nodes.filter((d: any) => d.state === 'OPEN');
 
 	setCache(cacheKey, discussions, 60);
 	return discussions;
@@ -390,7 +391,7 @@ export async function fetchAllDiscussions(
 						totalCount
 						pageInfo { hasNextPage endCursor }
 						nodes {
-							id number title createdAt isAnswered
+							id number title createdAt isAnswered state
 							author { login avatarUrl url }
 							category { id name slug emoji emojiHTML }
 							labels(first: 10) { nodes { name color } }
@@ -404,6 +405,7 @@ export async function fetchAllDiscussions(
 		)
 	);
 	const discussions = result.repository.discussions;
+	discussions.nodes = discussions.nodes.filter((d: any) => d.state === 'OPEN');
 	for (const d of discussions.nodes) parseCategoryEmoji(d.category);
 
 	setCache(cacheKey, discussions, 60);
@@ -476,7 +478,7 @@ async function fetchThreadsByCategoryFromEnd(
 					discussions(last: $last, categoryId: $categoryId, orderBy: { field: $orderBy, direction: DESC }) {
 						totalCount
 						nodes {
-							id number title createdAt isAnswered
+							id number title createdAt isAnswered state
 							author { login avatarUrl url }
 							labels(first: 10) { nodes { name color } }
 							comments { totalCount }
@@ -489,6 +491,7 @@ async function fetchThreadsByCategoryFromEnd(
 		)
 	);
 	const discussions = result.repository.discussions;
+	discussions.nodes = discussions.nodes.filter((d: any) => d.state === 'OPEN');
 	setCache(cacheKey, discussions, 60);
 	return discussions;
 }
@@ -517,7 +520,7 @@ async function fetchAllDiscussionsFromEnd(
 					discussions(last: $last, orderBy: { field: $orderBy, direction: DESC }) {
 						totalCount
 						nodes {
-							id number title createdAt isAnswered
+							id number title createdAt isAnswered state
 							author { login avatarUrl url }
 							category { id name slug emoji emojiHTML }
 							labels(first: 10) { nodes { name color } }
@@ -531,6 +534,7 @@ async function fetchAllDiscussionsFromEnd(
 		)
 	);
 	const discussions = result.repository.discussions;
+	discussions.nodes = discussions.nodes.filter((d: any) => d.state === 'OPEN');
 	for (const d of discussions.nodes) parseCategoryEmoji(d.category);
 	setCache(cacheKey, discussions, 60);
 	return discussions;
@@ -897,6 +901,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 			)
 		);
 		const thread = result.repository.discussion;
+		thread.comments.nodes = thread.comments.nodes.filter((c: any) => !c.isMinimized);
 		const totalCommentPages = Math.max(1, Math.ceil(thread.comments.totalCount / COMMENTS_PER_PAGE));
 
 		// Cache cursor for page 2
@@ -966,7 +971,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 							totalCount
 							pageInfo { hasNextPage endCursor }
 							nodes {
-								id body bodyHTML createdAt
+								id body bodyHTML createdAt isMinimized url
 								author { login avatarUrl url }
 								reactionGroups {
 									content
@@ -977,7 +982,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 								}
 								replies(first: 20) {
 									nodes {
-										id body bodyHTML createdAt
+										id body bodyHTML createdAt url
 										author { login avatarUrl url }
 									}
 								}
@@ -990,6 +995,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 		)
 	);
 	const moreComments = commentsResult.repository.discussion.comments;
+	moreComments.nodes = moreComments.nodes.filter((c: any) => !c.isMinimized);
 	const totalCommentPages = Math.max(1, Math.ceil(moreComments.totalCount / COMMENTS_PER_PAGE));
 
 	// Cache cursor for next page.
@@ -1067,7 +1073,7 @@ export async function fetchLatestDiscussions(first: number = 30, orderBy: string
 				repository(owner: $owner, name: $repo) {
 					discussions(first: $first, orderBy: { field: $orderBy, direction: DESC }) {
 						nodes {
-							id number title createdAt isAnswered
+							id number title createdAt isAnswered state
 							author { login avatarUrl url }
 							category { id name slug emoji emojiHTML }
 							labels(first: 10) { nodes { name color } }
@@ -1080,10 +1086,12 @@ export async function fetchLatestDiscussions(first: number = 30, orderBy: string
 			{ owner, repo, first, orderBy }
 		)
 	);
-	const discussions = result.repository.discussions.nodes.map((d: any) => {
-		parseCategoryEmoji(d.category);
-		return d;
-	});
+	const discussions = result.repository.discussions.nodes
+		.filter((d: any) => d.state === 'OPEN')
+		.map((d: any) => {
+			parseCategoryEmoji(d.category);
+			return d;
+		});
 
 	setCache(cacheKey, discussions, 60);
 	return discussions;
@@ -1143,7 +1151,7 @@ export async function fetchTopDiscussions(
 	);
 
 	const discussions = (result.search.nodes as any[])
-		.filter((n: any) => n?.number)
+		.filter((n: any) => n?.number && n?.state === 'OPEN')
 		.map((d: any) => { parseCategoryEmoji(d.category); return d; });
 
 	setCache(cacheKey, discussions, 60);
@@ -1201,19 +1209,24 @@ export async function createDiscussion(
 	return result.createDiscussion.discussion;
 }
 
-export async function addComment(token: string, discussionId: string, body: string) {
+export async function addComment(token: string, discussionId: string, body: string, replyToId?: string | null) {
 	const gql = getUserClient(token);
 
+	const replyParam = replyToId ? ', $replyToId: ID' : '';
+	const replyInput = replyToId ? '\n\t\t\t\treplyToId: $replyToId' : '';
+	const variables: Record<string, unknown> = { discussionId, body };
+	if (replyToId) variables.replyToId = replyToId;
+
 	const result: any = await gql(
-		`mutation($discussionId: ID!, $body: String!) {
+		`mutation($discussionId: ID!, $body: String!${replyParam}) {
 			addDiscussionComment(input: {
 				discussionId: $discussionId
-				body: $body
+				body: $body${replyInput}
 			}) {
 				comment { id createdAt }
 			}
 		}`,
-		{ discussionId, body }
+		variables
 	);
 
 	return result.addDiscussionComment.comment;
