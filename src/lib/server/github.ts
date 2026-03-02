@@ -550,7 +550,7 @@ async function fetchPageUsingLast(
 	orderBy: string,
 	userToken?: string | null
 ) {
-	const lastParam = totalCount - (page - 1) * perPage;
+	const lastParam = Math.min(totalCount - (page - 1) * perPage, CURSOR_BATCH_SIZE);
 	const data = categoryId
 		? await fetchThreadsByCategoryFromEnd(categoryId, lastParam, orderBy, userToken)
 		: await fetchAllDiscussionsFromEnd(lastParam, orderBy, userToken);
@@ -726,7 +726,7 @@ async function buildCursorsFromEnd(
 		// Page boundary: position P (multiple of perPage) is endCursor of page P/perPage
 		const firstBoundary = Math.ceil(batchStart / perPage) * perPage;
 		for (let pos = firstBoundary; pos <= batchEnd; pos += perPage) {
-			const pageNum = pos / perPage;
+			const pageNum = Math.floor(pos / perPage);
 			const idx = pos - batchStart; // 0-indexed in edges
 			if (idx >= 0 && idx < edges.length) {
 				cacheCursor(storeKey, pageNum, edges[idx].cursor);
@@ -782,7 +782,7 @@ async function fetchDiscussionPage(
 
 	// Can fetch from end directly? (within 100 items)
 	const itemsFromEnd = totalCount - (effectivePage - 1) * perPage;
-	if (itemsFromEnd > 0 && itemsFromEnd <= CURSOR_BATCH_SIZE) {
+	if (itemsFromEnd <= CURSOR_BATCH_SIZE) {
 		return fetchPageUsingLast(categoryId, effectivePage, perPage, totalCount, orderBy, userToken);
 	}
 
