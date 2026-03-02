@@ -17,42 +17,6 @@ function commentPageUrl(cp: number) {
 return `/t/${data.thread.number}?cp=${cp}`;
 }
 
-/**
- * Svelte action: clamp the reaction tooltip so it never overflows the viewport.
- * The tooltip is made visible by CSS (group-hover:block) before this handler runs,
- * so getBoundingClientRect() returns real dimensions and we can nudge the transform.
- */
-function clampTooltip(node: HTMLElement) {
-	const tooltip = node.querySelector<HTMLElement>('[data-tooltip]');
-	if (!tooltip) return;
-
-	function adjust() {
-		// Reset any previous nudge so the measurement starts from center.
-		tooltip!.style.transform = 'translateX(-50%)';
-		const r = tooltip!.getBoundingClientRect();
-		const vw = window.innerWidth;
-		const margin = 8;
-		if (r.right > vw - margin) {
-			tooltip!.style.transform = `translateX(calc(-50% - ${r.right - vw + margin}px))`;
-		} else if (r.left < margin) {
-			tooltip!.style.transform = `translateX(calc(-50% + ${margin - r.left}px))`;
-		}
-	}
-
-	function reset() {
-		tooltip!.style.transform = '';
-	}
-
-	node.addEventListener('mouseenter', adjust);
-	node.addEventListener('mouseleave', reset);
-	return {
-		destroy() {
-			node.removeEventListener('mouseenter', adjust);
-			node.removeEventListener('mouseleave', reset);
-		}
-	};
-}
-
 async function submitReply() {
 if (!replyBody.trim()) return;
 replying = true;
@@ -103,7 +67,7 @@ replying = false;
 </div>
 
 <!-- Original post -->
-<article class="rounded-lg border border-amber-200 bg-amber-50 dark:border-gray-800 dark:bg-gray-900">
+<article class="rounded-lg border border-amber-200 bg-white dark:border-gray-800 dark:bg-gray-900">
 <div class="border-b border-amber-100 px-6 py-4 dark:border-gray-800">
 <div class="flex flex-wrap items-start gap-2">
 <h1 class="flex-1 text-xl font-bold text-gray-900 dark:text-gray-100">{data.thread.title}</h1>
@@ -139,21 +103,21 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 </div>
 
 {#if activeGroups(data.thread.reactionGroups).length > 0}
-<div class="flex flex-wrap gap-2 border-t border-amber-100 px-6 py-3 dark:border-gray-800">
+<div tabindex="0" role="group" aria-label="Reactions" class="group/rx border-t border-amber-100 px-6 py-3 dark:border-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-amber-300">
+<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 group-hover/rx:flex-col group-hover/rx:flex-nowrap group-hover/rx:items-start group-focus-within/rx:flex-col group-focus-within/rx:flex-nowrap group-focus-within/rx:items-start">
 {#each activeGroups(data.thread.reactionGroups) as group}
 {@const users = group.reactors?.nodes?.filter((u: any) => u?.login) ?? []}
 {@const extra = (group.reactors?.totalCount ?? 0) - users.length}
-<div use:clampTooltip class="group relative inline-flex after:absolute after:bottom-full after:left-0 after:right-0 after:h-1 after:content-['']">
+<div class="flex items-center gap-2">
 <span class="cursor-default rounded-full bg-gray-100 px-2.5 py-0.5 text-sm dark:bg-gray-800">
 {reactionEmoji(group.content)} <span class="font-medium">{group.reactors.totalCount}</span>
 </span>
 {#if users.length > 0}
-<div data-tooltip class="pointer-events-auto absolute bottom-full left-1/2 z-20 hidden min-w-max max-w-[220px] -translate-x-1/2 rounded bg-gray-900 px-2.5 py-1.5 text-xs leading-5 text-white shadow-lg group-hover:block dark:bg-gray-700">
-{#each users as u, i}<a href="https://github.com/{u.login}" target="_blank" rel="noopener" class="hover:underline">{u.login}</a>{#if i < users.length - 1 || extra > 0}, {/if}{/each}{#if extra > 0}and {extra} more{/if}
-</div>
+<span class="hidden text-xs text-gray-500 dark:text-gray-400 group-hover/rx:inline group-focus-within/rx:inline">{#each users as u, i}<a href="https://github.com/{u.login}" target="_blank" rel="noopener" class="hover:underline">{u.login}</a>{#if i < users.length - 1 || extra > 0}, {/if}{/each}{#if extra > 0}and {extra} more{/if}</span>
 {/if}
 </div>
 {/each}
+</div>
 </div>
 {/if}
 </article>
@@ -171,7 +135,7 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 
 <div class="space-y-4">
 {#each data.thread.comments.nodes as comment}
-<article class="rounded-lg border border-amber-200 bg-amber-50 dark:border-gray-800 dark:bg-gray-900">
+<article class="rounded-lg border border-amber-200 bg-white dark:border-gray-800 dark:bg-gray-900">
 <div class="flex items-center gap-3 border-b border-amber-100 px-5 py-3 dark:border-gray-800">
 {#if comment.author}
 <img src={comment.author.avatarUrl} alt={comment.author.login} class="h-7 w-7 rounded-full" />
@@ -190,21 +154,21 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 </div>
 
 {#if activeGroups(comment.reactionGroups).length > 0}
-<div class="flex flex-wrap gap-2 border-t border-amber-100 px-5 py-2 dark:border-gray-800">
+<div tabindex="0" role="group" aria-label="Reactions" class="group/rx border-t border-amber-100 px-5 py-2 dark:border-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-amber-300">
+<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 group-hover/rx:flex-col group-hover/rx:flex-nowrap group-hover/rx:items-start group-focus-within/rx:flex-col group-focus-within/rx:flex-nowrap group-focus-within/rx:items-start">
 {#each activeGroups(comment.reactionGroups) as group}
 {@const users = group.reactors?.nodes?.filter((u: any) => u?.login) ?? []}
 {@const extra = (group.reactors?.totalCount ?? 0) - users.length}
-<div use:clampTooltip class="group relative inline-flex after:absolute after:bottom-full after:left-0 after:right-0 after:h-1 after:content-['']">
+<div class="flex items-center gap-2">
 <span class="cursor-default rounded-full bg-gray-100 px-2.5 py-0.5 text-sm dark:bg-gray-800">
 {reactionEmoji(group.content)} <span class="font-medium">{group.reactors.totalCount}</span>
 </span>
 {#if users.length > 0}
-<div data-tooltip class="pointer-events-auto absolute bottom-full left-1/2 z-20 hidden min-w-max max-w-[220px] -translate-x-1/2 rounded bg-gray-900 px-2.5 py-1.5 text-xs leading-5 text-white shadow-lg group-hover:block dark:bg-gray-700">
-{#each users as u, i}<a href="https://github.com/{u.login}" target="_blank" rel="noopener" class="hover:underline">{u.login}</a>{#if i < users.length - 1 || extra > 0}, {/if}{/each}{#if extra > 0}and {extra} more{/if}
-</div>
+<span class="hidden text-xs text-gray-500 dark:text-gray-400 group-hover/rx:inline group-focus-within/rx:inline">{#each users as u, i}<a href="https://github.com/{u.login}" target="_blank" rel="noopener" class="hover:underline">{u.login}</a>{#if i < users.length - 1 || extra > 0}, {/if}{/each}{#if extra > 0}and {extra} more{/if}</span>
 {/if}
 </div>
 {/each}
+</div>
 </div>
 {/if}
 
@@ -246,7 +210,7 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 {/if}
 
 <!-- Reply form -->
-<div class="rounded-lg border border-amber-200 bg-amber-50 p-5 dark:border-gray-800 dark:bg-gray-900">
+<div class="rounded-lg border border-amber-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
 {#if data.user}
 <h3 class="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Post a Reply</h3>
 <div class="mb-2 flex gap-2 border-b border-amber-100 dark:border-gray-700">

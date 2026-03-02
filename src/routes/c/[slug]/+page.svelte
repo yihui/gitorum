@@ -114,14 +114,14 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 {/if}
 
 {#if data.threads.length === 0 && (!data.pinned || data.pinned.length === 0)}
-<div class="rounded-lg border border-amber-200 bg-amber-50 p-8 text-center dark:border-gray-800 dark:bg-gray-900">
+<div class="rounded-lg border border-amber-200 bg-white p-8 text-center dark:border-gray-800 dark:bg-gray-900">
 <p class="text-gray-500 dark:text-gray-400">No threads yet in this category.</p>
 <a href="/new" class="mt-2 inline-block text-sm text-orange-600 hover:text-orange-700 dark:text-orange-400">Start a new thread →</a>
 </div>
 {:else if data.threads.length > 0}
-<div class="divide-y divide-amber-100 rounded-lg border border-amber-200 bg-amber-50 dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
+<div class="divide-y divide-amber-100 rounded-lg border border-amber-200 bg-white dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
 {#each data.threads as thread}
-<a href="/t/{thread.number}" class="flex items-center gap-4 px-4 py-3 transition hover:bg-amber-100/50 dark:hover:bg-gray-800/50">
+<a href="/t/{thread.number}" class="flex items-center gap-4 px-4 py-3 transition hover:bg-amber-50/50 dark:hover:bg-gray-800/50">
 {#if thread.author}
 <img src={thread.author.avatarUrl} alt={thread.author.login} class="h-9 w-9 shrink-0 rounded-full" />
 {:else}

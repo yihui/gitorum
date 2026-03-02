@@ -55,9 +55,9 @@ class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 hover:
 <h2 class="mb-3 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
 📌 Pinned
 </h2>
-<div class="divide-y divide-amber-100 rounded-lg border border-amber-200 bg-amber-50 dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
+<div class="divide-y divide-amber-100 rounded-lg border border-amber-200 bg-white dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
 {#each data.pinned as thread}
-<a href="/t/{thread.number}" class="flex items-start gap-4 px-4 py-3 transition hover:bg-amber-100/50 dark:hover:bg-gray-800/50">
+<a href="/t/{thread.number}" class="flex items-start gap-4 px-4 py-3 transition hover:bg-amber-50/50 dark:hover:bg-gray-800/50">
 {#if thread.author}
 <img src={thread.author.avatarUrl} alt={thread.author.login} class="mt-0.5 h-8 w-8 shrink-0 rounded-full" />
 {:else}
@@ -108,9 +108,9 @@ class="rounded px-3 py-1 text-sm {data.sort === s.key || (!data.sort && s.key ==
 </div>
 </div>
 {#if data.threads && data.threads.length > 0}
-<div class="divide-y divide-amber-100 rounded-lg border border-amber-200 bg-amber-50 dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
+<div class="divide-y divide-amber-100 rounded-lg border border-amber-200 bg-white dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
 {#each data.threads as thread}
-<a href="/t/{thread.number}" class="flex items-center gap-4 px-4 py-3 transition hover:bg-amber-100/50 dark:hover:bg-gray-800/50">
+<a href="/t/{thread.number}" class="flex items-center gap-4 px-4 py-3 transition hover:bg-amber-50/50 dark:hover:bg-gray-800/50">
 {#if thread.author}
 <img src={thread.author.avatarUrl} alt={thread.author.login} class="h-8 w-8 shrink-0 rounded-full" />
 {:else}
@@ -141,7 +141,7 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 {/each}
 </div>
 {:else}
-<div class="rounded-lg border border-amber-200 bg-amber-50 p-8 text-center dark:border-gray-800 dark:bg-gray-900">
+<div class="rounded-lg border border-amber-200 bg-white p-8 text-center dark:border-gray-800 dark:bg-gray-900">
 <p class="text-gray-500 dark:text-gray-400">No discussions yet.</p>
 </div>
 {/if}
@@ -154,7 +154,7 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 <div class="grid gap-3 sm:grid-cols-2">
 {#each data.categories as category}
 <a href="/c/{category.slug}"
-class="block rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-sm transition hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
+class="block rounded-lg border border-amber-200 bg-white p-4 shadow-sm transition hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
 <div class="mb-1 text-xl">{category.emoji || '💬'}</div>
 <h3 class="font-semibold text-gray-900 dark:text-gray-100">{category.name}</h3>
 {#if category.description}
