@@ -35,5 +35,5 @@ export const handle: Handle = async ({ event, resolve }) => {
 		event.locals.userToken = null;
 	}
 
-	return resolve(event);
+	return resolve(event, { preload: ({ type }) => type !== 'css' });
 };

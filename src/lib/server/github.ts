@@ -428,7 +428,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 							labels(first: 10) { nodes { name color } }
 							reactionGroups {
 								content
-								reactors(first: 10) {
+								reactors(first: 100) {
 									totalCount
 									nodes { ... on User { login } }
 								}
@@ -441,7 +441,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 									author { login avatarUrl url }
 									reactionGroups {
 										content
-										reactors(first: 10) {
+										reactors(first: 100) {
 											totalCount
 											nodes { ... on User { login } }
 										}
@@ -534,7 +534,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 								author { login avatarUrl url }
 								reactionGroups {
 									content
-									reactors(first: 10) {
+									reactors(first: 100) {
 										totalCount
 										nodes { ... on User { login } }
 									}

@@ -103,17 +103,17 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 </div>
 
 {#if activeGroups(data.thread.reactionGroups).length > 0}
-<div tabindex="0" role="group" aria-label="Reactions" class="group/rx border-t border-amber-100 px-6 py-3 dark:border-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-amber-300">
-<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 group-hover/rx:flex-col group-hover/rx:flex-nowrap group-hover/rx:items-start group-focus-within/rx:flex-col group-focus-within/rx:flex-nowrap group-focus-within/rx:items-start">
+<div tabindex="0" role="group" aria-label="Reactions" class="group/rx cursor-pointer border-t border-amber-100 px-6 py-3 dark:border-gray-800 focus:outline focus:outline-2 focus:outline-offset-[-2px] focus:outline-amber-300">
+<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 group-focus-within/rx:flex-col group-focus-within/rx:flex-nowrap group-focus-within/rx:items-start">
 {#each activeGroups(data.thread.reactionGroups) as group}
 {@const users = group.reactors?.nodes?.filter((u: any) => u?.login) ?? []}
 {@const extra = (group.reactors?.totalCount ?? 0) - users.length}
 <div class="flex items-center gap-2">
-<span class="cursor-default rounded-full bg-gray-100 px-2.5 py-0.5 text-sm dark:bg-gray-800">
+<span class="rounded-full bg-gray-100 px-2.5 py-0.5 text-sm dark:bg-gray-800">
 {reactionEmoji(group.content)} <span class="font-medium">{group.reactors.totalCount}</span>
 </span>
 {#if users.length > 0}
-<span class="hidden text-xs text-gray-500 dark:text-gray-400 group-hover/rx:inline group-focus-within/rx:inline">{#each users as u, i}<a href="https://github.com/{u.login}" target="_blank" rel="noopener" class="hover:underline">{u.login}</a>{#if i < users.length - 1 || extra > 0}, {/if}{/each}{#if extra > 0}and {extra} more{/if}</span>
+<span class="hidden text-xs text-gray-500 dark:text-gray-400 group-focus-within/rx:inline">{#each users as u, i}{#if i > 0}{', '}{/if}<a href="https://github.com/{u.login}" target="_blank" rel="noopener" class="hover:underline">{u.login}</a>{/each}{#if extra > 0}{', and '}{extra}{' more'}{/if}</span>
 {/if}
 </div>
 {/each}
@@ -154,17 +154,17 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 </div>
 
 {#if activeGroups(comment.reactionGroups).length > 0}
-<div tabindex="0" role="group" aria-label="Reactions" class="group/rx border-t border-amber-100 px-5 py-2 dark:border-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-amber-300">
-<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 group-hover/rx:flex-col group-hover/rx:flex-nowrap group-hover/rx:items-start group-focus-within/rx:flex-col group-focus-within/rx:flex-nowrap group-focus-within/rx:items-start">
+<div tabindex="0" role="group" aria-label="Reactions" class="group/rx cursor-pointer border-t border-amber-100 px-5 py-2 dark:border-gray-800 focus:outline focus:outline-2 focus:outline-offset-[-2px] focus:outline-amber-300">
+<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 group-focus-within/rx:flex-col group-focus-within/rx:flex-nowrap group-focus-within/rx:items-start">
 {#each activeGroups(comment.reactionGroups) as group}
 {@const users = group.reactors?.nodes?.filter((u: any) => u?.login) ?? []}
 {@const extra = (group.reactors?.totalCount ?? 0) - users.length}
 <div class="flex items-center gap-2">
-<span class="cursor-default rounded-full bg-gray-100 px-2.5 py-0.5 text-sm dark:bg-gray-800">
+<span class="rounded-full bg-gray-100 px-2.5 py-0.5 text-sm dark:bg-gray-800">
 {reactionEmoji(group.content)} <span class="font-medium">{group.reactors.totalCount}</span>
 </span>
 {#if users.length > 0}
-<span class="hidden text-xs text-gray-500 dark:text-gray-400 group-hover/rx:inline group-focus-within/rx:inline">{#each users as u, i}<a href="https://github.com/{u.login}" target="_blank" rel="noopener" class="hover:underline">{u.login}</a>{#if i < users.length - 1 || extra > 0}, {/if}{/each}{#if extra > 0}and {extra} more{/if}</span>
+<span class="hidden text-xs text-gray-500 dark:text-gray-400 group-focus-within/rx:inline">{#each users as u, i}{#if i > 0}{', '}{/if}<a href="https://github.com/{u.login}" target="_blank" rel="noopener" class="hover:underline">{u.login}</a>{/each}{#if extra > 0}{', and '}{extra}{' more'}{/if}</span>
 {/if}
 </div>
 {/each}

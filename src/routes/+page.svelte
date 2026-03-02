@@ -83,7 +83,7 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 </div>
 <div class="flex shrink-0 items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
 {#if thread.reactions?.totalCount > 0}
-<span>❤️ {thread.reactions.totalCount}</span>
+<span>✨ {thread.reactions.totalCount}</span>
 {/if}
 <span>💬 {thread.comments?.totalCount ?? 0}</span>
 </div>
@@ -133,7 +133,7 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 </div>
 <div class="flex shrink-0 items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
 {#if thread.reactions?.totalCount > 0}
-<span>❤️ {thread.reactions.totalCount}</span>
+<span>✨ {thread.reactions.totalCount}</span>
 {/if}
 <span>💬 {thread.comments?.totalCount ?? 0}</span>
 </div>

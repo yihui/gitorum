@@ -60,7 +60,7 @@
 
 						<div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
 							{#if thread.reactions?.totalCount > 0}
-								<span>❤️ {thread.reactions.totalCount}</span>
+								<span>✨ {thread.reactions.totalCount}</span>
 							{/if}
 							{#if thread.comments}
 								<span>💬 {thread.comments.totalCount}</span>
