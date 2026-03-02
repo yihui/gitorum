@@ -783,6 +783,22 @@ export async function addComment(token: string, discussionId: string, body: stri
 	return result.addDiscussionComment.comment;
 }
 
+export async function toggleReaction(token: string, subjectId: string, content: string, add: boolean) {
+	const gql = getUserClient(token);
+	const mutation = add ? 'addReaction' : 'removeReaction';
+
+	const result: any = await gql(
+		`mutation($subjectId: ID!, $content: ReactionContent!) {
+			${mutation}(input: { subjectId: $subjectId, content: $content }) {
+				reaction { content }
+			}
+		}`,
+		{ subjectId, content }
+	);
+
+	return result[mutation].reaction;
+}
+
 export async function searchDiscussions(query: string, first: number = 20, after?: string, userToken?: string | null) {
 	const cacheKey = `search:${query}:${first}:${after || ''}`;
 	const cached = getCached<any>(cacheKey);

@@ -12,7 +12,9 @@ export const load: PageServerLoad = async ({ params, url, locals, setHeaders }) 
 		const thread = await fetchThread(number, commentPage, locals.userToken);
 		if (!thread) error(404, 'Thread not found');
 
-		setHeaders({ 'Cache-Control': 'public, max-age=60, s-maxage=60, stale-while-revalidate=120' });
+		setHeaders(locals.user
+			? { 'Cache-Control': 'private, no-store' }
+			: { 'Cache-Control': 'public, max-age=60, s-maxage=60, stale-while-revalidate=120' });
 
 		return { thread, rateLimited: false };
 	} catch (err) {

@@ -3,7 +3,11 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url, setHeaders }) => {
-	setHeaders({ 'Cache-Control': 'public, max-age=60, s-maxage=60, stale-while-revalidate=120' });
+	if (locals.user) {
+		setHeaders({ 'Cache-Control': 'private, no-store' });
+	} else {
+		setHeaders({ 'Cache-Control': 'public, max-age=60, s-maxage=60, stale-while-revalidate=120' });
+	}
 	const sort = url.searchParams.get('sort') || 'latest';
 	try {
 		const [categories, pinned] = await Promise.all([

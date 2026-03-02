@@ -1,3 +1,6 @@
+export const REACTION_CONTENTS = ['THUMBS_UP', 'THUMBS_DOWN', 'LAUGH', 'HOORAY', 'CONFUSED', 'HEART', 'ROCKET', 'EYES'] as const;
+export type ReactionContent = typeof REACTION_CONTENTS[number];
+
 export function slugify(text: string): string {
 	return text
 		.toLowerCase()

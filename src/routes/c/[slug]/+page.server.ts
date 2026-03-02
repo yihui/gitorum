@@ -15,7 +15,9 @@ export const load: PageServerLoad = async ({ params, url, locals, setHeaders }) 
 		const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1);
 		const sort = url.searchParams.get('sort') || 'UPDATED_AT';
 
-		setHeaders({ 'Cache-Control': 'public, max-age=60, s-maxage=60, stale-while-revalidate=120' });
+		setHeaders(locals.user
+			? { 'Cache-Control': 'private, no-store' }
+			: { 'Cache-Control': 'public, max-age=60, s-maxage=60, stale-while-revalidate=120' });
 
 		const pinnedForCategory = (allPinned as any[]).filter((d: any) => d.category?.id === category.id);
 
