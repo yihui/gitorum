@@ -344,16 +344,16 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 {/if}
 {#if comment.isAnswer}
 <span class="ml-auto rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">✓ Answer</span>
+{#if isRepoOwner && isQandA}
+<button type="button" onclick={() => handleMarkAnswer(comment.id, false)}
+class="rounded px-2 py-0.5 text-xs text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400">
+Unmark
+</button>
+{/if}
 {:else if isRepoOwner && isQandA}
 <button type="button" onclick={() => handleMarkAnswer(comment.id, true)}
 class="ml-auto rounded px-2 py-0.5 text-xs text-gray-400 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20 dark:hover:text-green-400">
 Mark as answer
-</button>
-{/if}
-{#if comment.isAnswer && isRepoOwner && isQandA}
-<button type="button" onclick={() => handleMarkAnswer(comment.id, false)}
-class="rounded px-2 py-0.5 text-xs text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400">
-Unmark
 </button>
 {/if}
 </div>

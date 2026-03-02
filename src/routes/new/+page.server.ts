@@ -1,9 +1,10 @@
 import { fetchCategories, fetchRepoId, createDiscussion, getRepoOwner } from '$lib/server/github';
 import { redirect, error } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
+import type { Category } from '$lib/types';
 
 /** Returns true if the category is announcement-only (not for general posting). */
-function isAnnouncementCategory(category: any): boolean {
+function isAnnouncementCategory(category: Category): boolean {
 	const name = (category.name || '').toLowerCase();
 	const slug = (category.slug || '').toLowerCase();
 	return name.includes('announcement') || slug.includes('announcement');
@@ -24,7 +25,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		// Hide announcement categories from non-repo-owners.
 		const categories = isOwner
 			? allCategories || []
-			: (allCategories || []).filter((c: any) => !isAnnouncementCategory(c));
+			: (allCategories || []).filter((c: Category) => !isAnnouncementCategory(c));
 
 		return { categories, categoryId };
 	} catch (err) {
