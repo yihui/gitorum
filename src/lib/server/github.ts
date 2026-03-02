@@ -286,7 +286,7 @@ export async function fetchCategories(userToken?: string | null) {
 			`query($owner: String!, $repo: String!) {
 				repository(owner: $owner, name: $repo) {
 					discussionCategories(first: 20) {
-						nodes { id name description emoji emojiHTML slug }
+						nodes { id name description emoji emojiHTML slug isAnswerable }
 					}
 				}
 			}`,
@@ -840,6 +840,42 @@ export async function fetchAllDiscussionsByPage(
 	return fetchDiscussionPage(`all:${orderBy}`, null, page, perPage, orderBy, userToken);
 }
 
+// ---------------------------------------------------------------------------
+// Smart thread cache: stores thread data with its updatedAt timestamp for
+// intelligent cache invalidation. When the short TTL expires, a lightweight
+// updatedAt query is made; if the timestamp is unchanged the cached data is
+// returned without re-fetching the full thread content.
+// ---------------------------------------------------------------------------
+interface ThreadCacheEntry {
+	data: any;
+	updatedAt: string;
+}
+const threadLongCache = new Map<string, ThreadCacheEntry>();
+
+/** Lightweight query: fetch only updatedAt for a discussion. */
+async function fetchThreadUpdatedAt(
+	number: number,
+	token: string,
+	owner: string,
+	repo: string
+): Promise<string | null> {
+	try {
+		const result: any = await executeGraphQLRead(token, (gql) =>
+			gql(
+				`query($owner: String!, $repo: String!, $number: Int!) {
+					repository(owner: $owner, name: $repo) {
+						discussion(number: $number) { updatedAt }
+					}
+				}`,
+				{ owner, repo, number }
+			)
+		);
+		return result?.repository?.discussion?.updatedAt ?? null;
+	} catch {
+		return null;
+	}
+}
+
 export async function fetchThread(number: number, commentPage: number = 1, userToken?: string | null): Promise<any> {
 	const cacheKey = `thread:${number}:cp:${commentPage}`;
 	const cached = getCached<any>(cacheKey);
@@ -851,6 +887,20 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 
 	if (!token) throw new Error('No API token available. Please configure a GitHub App.');
 
+	// Smart cache: if we have previously fetched data, check updatedAt before
+	// re-fetching the full thread content.
+	const longCached = threadLongCache.get(cacheKey);
+	if (longCached) {
+		const currentUpdatedAt = await fetchThreadUpdatedAt(number, token, owner, repo);
+		if (currentUpdatedAt && currentUpdatedAt === longCached.updatedAt) {
+			// Thread hasn't changed – refresh the short TTL and return cached data.
+			setCache(cacheKey, longCached.data, 60);
+			return longCached.data;
+		}
+		// Thread changed – evict stale long-lived cache entry.
+		threadLongCache.delete(cacheKey);
+	}
+
 	// For page 1 we fetch full thread metadata + first page of comments.
 	if (commentPage === 1) {
 		const result: any = await executeGraphQLRead(token, (gql) =>
@@ -858,9 +908,9 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 				`query($owner: String!, $repo: String!, $number: Int!) {
 					repository(owner: $owner, name: $repo) {
 						discussion(number: $number) {
-							id number title body bodyHTML createdAt isAnswered url
+							id number title body bodyHTML createdAt updatedAt isAnswered url
 							author { login avatarUrl url }
-							category { name slug }
+							category { name slug isAnswerable }
 							labels(first: 10) { nodes { name color } }
 							reactionGroups {
 								content
@@ -873,7 +923,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 								totalCount
 								pageInfo { hasNextPage endCursor }
 								nodes {
-									id body bodyHTML createdAt isMinimized url
+									id body bodyHTML createdAt isMinimized isAnswer url
 									author { login avatarUrl url }
 									reactionGroups {
 										content
@@ -910,6 +960,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 
 		const data = { ...thread, commentPage: 1, totalCommentPages };
 		setCache(cacheKey, data, 60);
+		threadLongCache.set(cacheKey, { data, updatedAt: thread.updatedAt });
 		return data;
 	}
 
@@ -967,7 +1018,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 							totalCount
 							pageInfo { hasNextPage endCursor }
 							nodes {
-								id body bodyHTML createdAt isMinimized url
+								id body bodyHTML createdAt isMinimized isAnswer url
 								author { login avatarUrl url }
 								reactionGroups {
 									content
@@ -1001,6 +1052,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 
 	const data = { ...page1, comments: moreComments, commentPage, totalCommentPages };
 	setCache(cacheKey, data, 60);
+	threadLongCache.set(cacheKey, { data, updatedAt: page1.updatedAt });
 	return data;
 }
 
@@ -1279,4 +1331,20 @@ export async function searchDiscussions(query: string, first: number = 20, after
 	const search = result.search;
 	setCache(cacheKey, search, 60);
 	return search;
+}
+
+export async function markCommentAsAnswer(token: string, commentId: string, mark: boolean) {
+	const gql = getUserClient(token);
+	const mutation = mark ? 'markDiscussionCommentAsAnswer' : 'unmarkDiscussionCommentAsAnswer';
+
+	const result: any = await gql(
+		`mutation($id: ID!) {
+			${mutation}(input: { id: $id }) {
+				discussion { isAnswered }
+			}
+		}`,
+		{ id: commentId }
+	);
+
+	return result[mutation].discussion;
 }

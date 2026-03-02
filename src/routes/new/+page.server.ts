@@ -1,6 +1,13 @@
-import { fetchCategories, fetchRepoId, createDiscussion } from '$lib/server/github';
+import { fetchCategories, fetchRepoId, createDiscussion, getRepoOwner } from '$lib/server/github';
 import { redirect, error } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
+
+/** Returns true if the category is announcement-only (not for general posting). */
+function isAnnouncementCategory(category: any): boolean {
+	const name = (category.name || '').toLowerCase();
+	const slug = (category.slug || '').toLowerCase();
+	return name.includes('announcement') || slug.includes('announcement');
+}
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
@@ -10,8 +17,16 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const categoryId = url.searchParams.get('categoryId') || '';
 
 	try {
-		const categories = await fetchCategories(locals.userToken);
-		return { categories: categories || [], categoryId };
+		const allCategories = await fetchCategories(locals.userToken);
+		const repoOwner = getRepoOwner();
+		const isOwner = locals.user.login === repoOwner;
+
+		// Hide announcement categories from non-repo-owners.
+		const categories = isOwner
+			? allCategories || []
+			: (allCategories || []).filter((c: any) => !isAnnouncementCategory(c));
+
+		return { categories, categoryId };
 	} catch (err) {
 		console.error('Failed to load categories for new thread page:', err);
 		error(503, 'Could not load discussion categories. Please check your GitHub App configuration.');

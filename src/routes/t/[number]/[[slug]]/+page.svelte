@@ -158,6 +158,32 @@ replyBody = '';
 replyError = '';
 showReplyPreview = false;
 }
+
+/** Whether the thread category supports Q&A answers. */
+const isQandA = $derived(!!data.thread?.category?.isAnswerable);
+
+let markAnswerError = $state('');
+
+async function handleMarkAnswer(commentId: string, mark: boolean) {
+markAnswerError = '';
+try {
+const res = await fetch('/api/mark-answer', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ commentId, mark })
+});
+if (!res.ok) {
+const err = await res.json();
+markAnswerError = err.message || 'Failed to update answer';
+setTimeout(() => { markAnswerError = ''; }, 3000);
+return;
+}
+window.location.reload();
+} catch {
+markAnswerError = 'Failed to update answer';
+setTimeout(() => { markAnswerError = ''; }, 3000);
+}
+}
 </script>
 
 {#snippet reactionBar(subjectId: string, originalGroups: any[], padClass: string)}
@@ -231,12 +257,17 @@ title={rc}>{reactionEmoji(rc)}</button>
 </div>
 {:else if data.thread}
 <!-- Breadcrumb -->
-<div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+<div class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+<div class="flex items-center gap-2">
 <a href="/" class="hover:text-gray-700 dark:hover:text-gray-200">Home</a>
 <span>›</span>
 <a href="/c/{data.thread.category.slug}" class="hover:text-gray-700 dark:hover:text-gray-200">{data.thread.category.name}</a>
 <span>›</span>
 <span class="text-gray-700 dark:text-gray-200">Thread</span>
+</div>
+{#if data.user}
+<a href="/new" class="rounded-md bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-700">New Thread</a>
+{/if}
 </div>
 
 <!-- Original post -->
@@ -295,8 +326,8 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 
 <div class="space-y-4">
 {#each data.thread.comments.nodes as comment}
-<article class="rounded-lg border border-amber-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-<div class="flex items-center gap-3 border-b border-amber-100 px-5 py-3 dark:border-gray-800">
+<article class="rounded-lg border {comment.isAnswer ? 'border-green-400 dark:border-green-600' : 'border-amber-200 dark:border-gray-800'} bg-white dark:bg-gray-900">
+<div class="flex items-center gap-3 border-b {comment.isAnswer ? 'border-green-200 dark:border-green-800' : 'border-amber-100 dark:border-gray-800'} px-5 py-3">
 {#if comment.author}
 <img src={comment.author.avatarUrl} alt={comment.author.login} class="h-7 w-7 rounded-full" />
 <a href={comment.author.url} target="_blank" class="text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100">
@@ -310,6 +341,20 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 <a href={comment.url} target="_blank" rel="noopener" class="text-xs text-gray-500 hover:underline dark:text-gray-400">{formatDate(comment.createdAt)}</a>
 {:else}
 <span class="text-xs text-gray-500 dark:text-gray-400">{formatDate(comment.createdAt)}</span>
+{/if}
+{#if comment.isAnswer}
+<span class="ml-auto rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">✓ Answer</span>
+{:else if isRepoOwner && isQandA}
+<button type="button" onclick={() => handleMarkAnswer(comment.id, true)}
+class="ml-auto rounded px-2 py-0.5 text-xs text-gray-400 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20 dark:hover:text-green-400">
+Mark as answer
+</button>
+{/if}
+{#if comment.isAnswer && isRepoOwner && isQandA}
+<button type="button" onclick={() => handleMarkAnswer(comment.id, false)}
+class="rounded px-2 py-0.5 text-xs text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400">
+Unmark
+</button>
 {/if}
 </div>
 
@@ -407,6 +452,9 @@ Reply...
 <!-- Comment form -->
 {#if reactionError}
 <p class="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-400">{reactionError}</p>
+{/if}
+{#if markAnswerError}
+<p class="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-400">{markAnswerError}</p>
 {/if}
 <div class="rounded-lg border border-amber-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
 {#if data.user}
