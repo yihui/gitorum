@@ -49,7 +49,7 @@
 
 						<div class="min-w-0 flex-1">
 							<h3 class="truncate font-medium text-gray-900 dark:text-gray-100">{thread.title}</h3>
-							<p class="text-xs text-gray-500 dark:text-gray-400">
+							<p class="text-sm text-gray-500 dark:text-gray-400">
 								{thread.author?.login || 'ghost'}
 								{#if thread.category}
 									 in {thread.category.name}
@@ -58,7 +58,7 @@
 							</p>
 						</div>
 
-						<div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+						<div class="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
 							{#if thread.reactions?.totalCount > 0}
 								<span>✨ {thread.reactions.totalCount}</span>
 							{/if}

@@ -103,19 +103,23 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 </div>
 
 {#if activeGroups(data.thread.reactionGroups).length > 0}
-<div tabindex="0" role="group" aria-label="Reactions" class="group/rx cursor-pointer border-t border-amber-100 px-6 py-3 dark:border-gray-800 focus:outline focus:outline-2 focus:outline-offset-[-2px] focus:outline-amber-300">
-<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 group-focus-within/rx:flex-col group-focus-within/rx:flex-nowrap group-focus-within/rx:items-start">
+<div class="border-t border-amber-100 px-6 py-3 dark:border-gray-800">
+<div class="flex flex-wrap gap-x-3 gap-y-1.5">
 {#each activeGroups(data.thread.reactionGroups) as group}
 {@const users = group.reactors?.nodes?.filter((u: any) => u?.login) ?? []}
 {@const extra = (group.reactors?.totalCount ?? 0) - users.length}
-<div class="flex items-center gap-2">
+{#if users.length > 0}
+<details class="group/rx">
+<summary class="flex cursor-pointer list-none items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-sm dark:bg-gray-800">
+{reactionEmoji(group.content)} <span class="font-medium">{group.reactors.totalCount}</span><span class="ml-0.5 inline-block text-xs text-gray-400 transition-transform group-open/rx:rotate-90">▶</span>
+</summary>
+<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{#each users as u, i}{#if i > 0}{', '}{/if}<a href="https://github.com/{u.login}" target="_blank" rel="noopener" class="hover:underline">{u.login}</a>{/each}{#if extra > 0}{', and '}{extra}{' more'}{/if}</p>
+</details>
+{:else}
 <span class="rounded-full bg-gray-100 px-2.5 py-0.5 text-sm dark:bg-gray-800">
 {reactionEmoji(group.content)} <span class="font-medium">{group.reactors.totalCount}</span>
 </span>
-{#if users.length > 0}
-<span class="hidden text-xs text-gray-500 dark:text-gray-400 group-focus-within/rx:inline">{#each users as u, i}{#if i > 0}{', '}{/if}<a href="https://github.com/{u.login}" target="_blank" rel="noopener" class="hover:underline">{u.login}</a>{/each}{#if extra > 0}{', and '}{extra}{' more'}{/if}</span>
 {/if}
-</div>
 {/each}
 </div>
 </div>
@@ -154,19 +158,23 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 </div>
 
 {#if activeGroups(comment.reactionGroups).length > 0}
-<div tabindex="0" role="group" aria-label="Reactions" class="group/rx cursor-pointer border-t border-amber-100 px-5 py-2 dark:border-gray-800 focus:outline focus:outline-2 focus:outline-offset-[-2px] focus:outline-amber-300">
-<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 group-focus-within/rx:flex-col group-focus-within/rx:flex-nowrap group-focus-within/rx:items-start">
+<div class="border-t border-amber-100 px-5 py-2 dark:border-gray-800">
+<div class="flex flex-wrap gap-x-3 gap-y-1.5">
 {#each activeGroups(comment.reactionGroups) as group}
 {@const users = group.reactors?.nodes?.filter((u: any) => u?.login) ?? []}
 {@const extra = (group.reactors?.totalCount ?? 0) - users.length}
-<div class="flex items-center gap-2">
+{#if users.length > 0}
+<details class="group/rx">
+<summary class="flex cursor-pointer list-none items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-sm dark:bg-gray-800">
+{reactionEmoji(group.content)} <span class="font-medium">{group.reactors.totalCount}</span><span class="ml-0.5 inline-block text-xs text-gray-400 transition-transform group-open/rx:rotate-90">▶</span>
+</summary>
+<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{#each users as u, i}{#if i > 0}{', '}{/if}<a href="https://github.com/{u.login}" target="_blank" rel="noopener" class="hover:underline">{u.login}</a>{/each}{#if extra > 0}{', and '}{extra}{' more'}{/if}</p>
+</details>
+{:else}
 <span class="rounded-full bg-gray-100 px-2.5 py-0.5 text-sm dark:bg-gray-800">
 {reactionEmoji(group.content)} <span class="font-medium">{group.reactors.totalCount}</span>
 </span>
-{#if users.length > 0}
-<span class="hidden text-xs text-gray-500 dark:text-gray-400 group-focus-within/rx:inline">{#each users as u, i}{#if i > 0}{', '}{/if}<a href="https://github.com/{u.login}" target="_blank" rel="noopener" class="hover:underline">{u.login}</a>{/each}{#if extra > 0}{', and '}{extra}{' more'}{/if}</span>
 {/if}
-</div>
 {/each}
 </div>
 </div>

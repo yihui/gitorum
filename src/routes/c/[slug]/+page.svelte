@@ -72,7 +72,7 @@ Trending
 <!-- Pinned threads for this category -->
 {#if data.pinned && data.pinned.length > 0}
 <div>
-<h2 class="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+<h2 class="mb-2 flex items-center gap-1 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
 📌 Pinned
 </h2>
 <div class="divide-y divide-gray-200 rounded-lg border border-orange-200 bg-orange-50/50 dark:divide-gray-800 dark:border-orange-900/40 dark:bg-orange-950/10">
@@ -95,13 +95,13 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 {/if}
 </div>
 {#if thread.bodyText}
-<p class="mt-0.5 line-clamp-2 text-xs text-gray-600 dark:text-gray-400">{truncateText(thread.bodyText)}</p>
+<p class="mt-0.5 line-clamp-2 text-sm text-gray-600 dark:text-gray-400">{truncateText(thread.bodyText)}</p>
 {/if}
-<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
 {thread.author?.login || 'ghost'}{#if thread.isAnswered} · <span class="font-medium text-green-600 dark:text-green-400">Answered</span>{/if} · {formatDate(thread.createdAt)}
 </p>
 </div>
-<div class="flex shrink-0 items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+<div class="flex shrink-0 items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
 {#if thread.reactions?.totalCount > 0}
 <span>✨ {thread.reactions.totalCount}</span>
 {/if}
@@ -138,11 +138,11 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 {/each}
 {/if}
 </div>
-<p class="text-xs text-gray-500 dark:text-gray-400">
+<p class="text-sm text-gray-500 dark:text-gray-400">
 {thread.author?.login || 'ghost'}{#if thread.isAnswered} · <span class="font-medium text-green-600 dark:text-green-400">Answered</span>{/if} · {formatDate(thread.createdAt)}
 </p>
 </div>
-<div class="flex shrink-0 items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+<div class="flex shrink-0 items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
 {#if thread.reactions?.totalCount > 0}
 <span title="Reactions">✨ {thread.reactions.totalCount}</span>
 {/if}

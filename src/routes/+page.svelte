@@ -75,13 +75,13 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 {/if}
 </div>
 {#if thread.bodyText}
-<p class="mt-0.5 line-clamp-2 text-xs text-gray-600 dark:text-gray-400">{truncateText(thread.bodyText)}</p>
+<p class="mt-0.5 line-clamp-2 text-sm text-gray-600 dark:text-gray-400">{truncateText(thread.bodyText)}</p>
 {/if}
-<p class="mt-1 truncate text-xs text-gray-500 dark:text-gray-400">
+<p class="mt-1 truncate text-sm text-gray-500 dark:text-gray-400">
 {thread.category?.emoji || '💬'} {thread.category?.name} · {thread.author?.login || 'ghost'}{#if thread.isAnswered} · <span class="font-medium text-green-600 dark:text-green-400">Answered</span>{/if} · {formatDate(thread.createdAt)}
 </p>
 </div>
-<div class="flex shrink-0 items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+<div class="flex shrink-0 items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
 {#if thread.reactions?.totalCount > 0}
 <span>✨ {thread.reactions.totalCount}</span>
 {/if}
@@ -127,11 +127,11 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 {/each}
 {/if}
 </div>
-<p class="truncate text-xs text-gray-500 dark:text-gray-400">
+<p class="truncate text-sm text-gray-500 dark:text-gray-400">
 {thread.category?.emoji || '💬'} {thread.category?.name} · {thread.author?.login || 'ghost'}{#if thread.isAnswered} · <span class="font-medium text-green-600 dark:text-green-400">Answered</span>{/if} · {formatDate(thread.createdAt)}
 </p>
 </div>
-<div class="flex shrink-0 items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+<div class="flex shrink-0 items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
 {#if thread.reactions?.totalCount > 0}
 <span>✨ {thread.reactions.totalCount}</span>
 {/if}
