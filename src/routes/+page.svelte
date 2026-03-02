@@ -115,9 +115,14 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 <!-- Latest threads -->
 <section>
 <div class="mb-3 flex items-center justify-between">
-<h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+<div class="flex items-center gap-2">
+{#if data.user}
+<a href="/new" class="rounded-md bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-700">New Thread</a>
+{/if}
+<span class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
 {SORTS.find(s => s.key === data.sort)?.label ?? 'Latest'}
-</h2>
+</span>
+</div>
 <div class="flex gap-1">
 {#each SORTS as s}
 <a href="/?sort={s.key}"

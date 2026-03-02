@@ -2,14 +2,16 @@ import { fetchCategories, fetchRepoId, createDiscussion } from '$lib/server/gith
 import { redirect, error } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
 		redirect(302, '/auth/login?redirect=/new');
 	}
 
+	const categoryId = url.searchParams.get('categoryId') || '';
+
 	try {
 		const categories = await fetchCategories(locals.userToken);
-		return { categories: categories || [] };
+		return { categories: categories || [], categoryId };
 	} catch (err) {
 		console.error('Failed to load categories for new thread page:', err);
 		error(503, 'Could not load discussion categories. Please check your GitHub App configuration.');

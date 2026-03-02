@@ -862,7 +862,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 				`query($owner: String!, $repo: String!, $number: Int!) {
 					repository(owner: $owner, name: $repo) {
 						discussion(number: $number) {
-							id number title body bodyHTML createdAt isAnswered
+							id number title body bodyHTML createdAt isAnswered url
 							author { login avatarUrl url }
 							category { name slug }
 							labels(first: 10) { nodes { name color } }
@@ -877,7 +877,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 								totalCount
 								pageInfo { hasNextPage endCursor }
 								nodes {
-									id body bodyHTML createdAt
+									id body bodyHTML createdAt isMinimized url
 									author { login avatarUrl url }
 									reactionGroups {
 										content
@@ -888,7 +888,7 @@ export async function fetchThread(number: number, commentPage: number = 1, userT
 									}
 									replies(first: 20) {
 										nodes {
-											id body bodyHTML createdAt
+											id body bodyHTML createdAt url
 											author { login avatarUrl url }
 										}
 									}

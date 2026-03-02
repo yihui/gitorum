@@ -48,7 +48,7 @@
 			>
 				<option value="">Select a category</option>
 				{#each data.categories as category}
-					<option value={category.id} selected={form?.categoryId === category.id}>
+					<option value={category.id} selected={form?.categoryId === category.id || (!form?.categoryId && data.categoryId === category.id)}>
 						{category.emoji || '💬'} {category.name}
 					</option>
 				{/each}

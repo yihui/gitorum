@@ -34,6 +34,7 @@ export interface ThreadDetail {
 	body: string;
 	bodyHTML: string;
 	createdAt: string;
+	url?: string;
 	author: Author;
 	reactions: { nodes: Reaction[]; totalCount: number };
 	category: { name: string; slug: string };
@@ -49,6 +50,8 @@ export interface Comment {
 	body: string;
 	bodyHTML: string;
 	createdAt: string;
+	url?: string;
+	isMinimized?: boolean;
 	author: Author;
 	reactions: { nodes: Reaction[]; totalCount: number };
 	replies: {
@@ -61,6 +64,7 @@ export interface Reply {
 	body: string;
 	bodyHTML: string;
 	createdAt: string;
+	url?: string;
 	author: Author;
 }
 

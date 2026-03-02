@@ -3,12 +3,22 @@ import { formatDate, reactionEmoji, REACTION_CONTENTS } from '$lib/utils';
 import { renderMarkdown } from '$lib/markdown';
 
 let { data } = $props();
+let commentBody = $state('');
+let commenting = $state(false);
+let commentError = $state('');
+let showCommentPreview = $state(false);
+
+/** The comment id currently being replied to (null = none). */
+let activeReplyId = $state<string | null>(null);
 let replyBody = $state('');
 let replying = $state(false);
 let replyError = $state('');
-let showPreview = $state(false);
+let showReplyPreview = $state(false);
 
 const ALL_REACTIONS = REACTION_CONTENTS;
+
+/** Whether the current user is the repo owner (can see GitHub links). */
+const isRepoOwner = $derived(!!data.user && data.user.login === data.repoOwner);
 
 /** Per-subject optimistic reaction state (keyed by GitHub node id). */
 let reactionState: Record<string, any[]> = $state({});
@@ -89,7 +99,30 @@ function commentPageUrl(cp: number) {
 return `/t/${data.thread.number}?cp=${cp}`;
 }
 
-async function submitReply() {
+async function submitComment() {
+if (!commentBody.trim()) return;
+commenting = true;
+commentError = '';
+try {
+const res = await fetch('/api/reply', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ discussionId: data.thread.id, body: commentBody.trim() })
+});
+if (!res.ok) {
+const err = await res.json();
+commentError = err.message || 'Failed to post comment';
+return;
+}
+window.location.reload();
+} catch {
+commentError = 'Failed to post comment';
+} finally {
+commenting = false;
+}
+}
+
+async function submitReply(commentId: string) {
 if (!replyBody.trim()) return;
 replying = true;
 replyError = '';
@@ -97,7 +130,7 @@ try {
 const res = await fetch('/api/reply', {
 method: 'POST',
 headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({ discussionId: data.thread.id, body: replyBody.trim() })
+body: JSON.stringify({ discussionId: data.thread.id, replyToId: commentId, body: replyBody.trim() })
 });
 if (!res.ok) {
 const err = await res.json();
@@ -110,6 +143,19 @@ replyError = 'Failed to post reply';
 } finally {
 replying = false;
 }
+}
+
+function openReply(commentId: string) {
+activeReplyId = commentId;
+replyBody = '';
+replyError = '';
+showReplyPreview = false;
+}
+
+function cancelReply() {
+activeReplyId = null;
+replyBody = '';
+replyError = '';
 }
 </script>
 
@@ -220,7 +266,11 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 <div class="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-700"></div>
 <span class="text-sm text-gray-500">ghost</span>
 {/if}
+{#if isRepoOwner && data.thread.url}
+<a href={data.thread.url} target="_blank" rel="noopener" class="text-xs text-gray-500 hover:underline dark:text-gray-400">{formatDate(data.thread.createdAt)}</a>
+{:else}
 <span class="text-xs text-gray-500 dark:text-gray-400">{formatDate(data.thread.createdAt)}</span>
+{/if}
 </div>
 </div>
 
@@ -235,7 +285,7 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 {#if data.thread.comments.totalCount > 0}
 <div class="flex items-center justify-between">
 <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-{data.thread.comments.totalCount} {data.thread.comments.totalCount === 1 ? 'Reply' : 'Replies'}
+{data.thread.comments.totalCount} {data.thread.comments.totalCount === 1 ? 'Comment' : 'Comments'}
 </h2>
 {#if data.thread.totalCommentPages > 1}
 <span class="text-sm text-gray-500 dark:text-gray-400">Page {data.thread.commentPage} / {data.thread.totalCommentPages}</span>
@@ -255,7 +305,11 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 <div class="h-7 w-7 rounded-full bg-gray-300 dark:bg-gray-700"></div>
 <span class="text-sm text-gray-500">ghost</span>
 {/if}
+{#if isRepoOwner && comment.url}
+<a href={comment.url} target="_blank" rel="noopener" class="text-xs text-gray-500 hover:underline dark:text-gray-400">{formatDate(comment.createdAt)}</a>
+{:else}
 <span class="text-xs text-gray-500 dark:text-gray-400">{formatDate(comment.createdAt)}</span>
+{/if}
 </div>
 
 <div class="prose dark:prose-invert max-w-none px-5 py-3">
@@ -275,13 +329,61 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 {:else}
 <span class="text-sm text-gray-500">ghost</span>
 {/if}
+{#if isRepoOwner && reply.url}
+<a href={reply.url} target="_blank" rel="noopener" class="text-xs text-gray-500 hover:underline dark:text-gray-400">{formatDate(reply.createdAt)}</a>
+{:else}
 <span class="text-xs text-gray-500 dark:text-gray-400">{formatDate(reply.createdAt)}</span>
+{/if}
 </div>
 <div class="prose dark:prose-invert mt-1 max-w-none text-sm">
 {@html reply.bodyHTML}
 </div>
 </div>
 {/each}
+</div>
+{/if}
+
+<!-- Per-comment reply box -->
+{#if data.user}
+<div class="border-t border-amber-100 px-5 py-3 dark:border-gray-800">
+{#if activeReplyId === comment.id}
+<!-- Expanded reply form -->
+<div class="mb-2 flex gap-2 border-b border-amber-100 dark:border-gray-700">
+<button type="button" onclick={() => showReplyPreview = false}
+class="px-3 py-1.5 text-sm {!showReplyPreview ? 'border-b-2 border-orange-500 font-medium text-orange-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}">Write</button>
+<button type="button" onclick={() => showReplyPreview = true}
+class="px-3 py-1.5 text-sm {showReplyPreview ? 'border-b-2 border-orange-500 font-medium text-orange-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}">Preview</button>
+</div>
+{#if showReplyPreview}
+<div class="prose dark:prose-invert min-h-[80px] rounded border border-amber-100 p-3 dark:border-gray-700">
+{#if replyBody.trim()}
+{@html renderMarkdown(replyBody)}
+{:else}
+<p class="text-gray-400">Nothing to preview</p>
+{/if}
+</div>
+{:else}
+<textarea bind:value={replyBody} placeholder="Write a reply... (Markdown supported)"
+class="w-full rounded border border-gray-300 p-3 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" rows="3"></textarea>
+{/if}
+{#if replyError}
+<p class="mt-1 text-sm text-red-600">{replyError}</p>
+{/if}
+<div class="mt-2 flex justify-end gap-2">
+<button type="button" onclick={cancelReply}
+class="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400">Cancel</button>
+<button type="button" onclick={() => submitReply(comment.id)} disabled={replying || !replyBody.trim()}
+class="rounded-md bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50">
+{replying ? 'Posting...' : 'Post Reply'}
+</button>
+</div>
+{:else}
+<!-- Collapsed single-line trigger -->
+<button type="button" onclick={() => openReply(comment.id)}
+class="w-full rounded border border-gray-200 px-3 py-2 text-left text-sm text-gray-400 hover:border-gray-300 hover:text-gray-500 dark:border-gray-700 dark:text-gray-500 dark:hover:border-gray-600">
+Reply...
+</button>
+{/if}
 </div>
 {/if}
 </article>
@@ -301,38 +403,38 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 {/if}
 {/if}
 
-<!-- Reply form -->
+<!-- Comment form -->
 {#if reactionError}
 <p class="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-400">{reactionError}</p>
 {/if}
 <div class="rounded-lg border border-amber-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
 {#if data.user}
-<h3 class="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Post a Reply</h3>
+<h3 class="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Post a Comment</h3>
 <div class="mb-2 flex gap-2 border-b border-amber-100 dark:border-gray-700">
-<button type="button" onclick={() => showPreview = false}
-class="px-3 py-1.5 text-sm {!showPreview ? 'border-b-2 border-orange-500 font-medium text-orange-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}">Write</button>
-<button type="button" onclick={() => showPreview = true}
-class="px-3 py-1.5 text-sm {showPreview ? 'border-b-2 border-orange-500 font-medium text-orange-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}">Preview</button>
+<button type="button" onclick={() => showCommentPreview = false}
+class="px-3 py-1.5 text-sm {!showCommentPreview ? 'border-b-2 border-orange-500 font-medium text-orange-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}">Write</button>
+<button type="button" onclick={() => showCommentPreview = true}
+class="px-3 py-1.5 text-sm {showCommentPreview ? 'border-b-2 border-orange-500 font-medium text-orange-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}">Preview</button>
 </div>
-{#if showPreview}
+{#if showCommentPreview}
 <div class="prose dark:prose-invert min-h-[120px] rounded border border-amber-100 p-3 dark:border-gray-700">
-{#if replyBody.trim()}
-{@html renderMarkdown(replyBody)}
+{#if commentBody.trim()}
+{@html renderMarkdown(commentBody)}
 {:else}
 <p class="text-gray-400">Nothing to preview</p>
 {/if}
 </div>
 {:else}
-<textarea bind:value={replyBody} placeholder="Write your reply... (Markdown supported)"
+<textarea bind:value={commentBody} placeholder="Write your comment... (Markdown supported)"
 class="w-full rounded border border-gray-300 p-3 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" rows="4"></textarea>
 {/if}
-{#if replyError}
-<p class="mt-2 text-sm text-red-600">{replyError}</p>
+{#if commentError}
+<p class="mt-2 text-sm text-red-600">{commentError}</p>
 {/if}
 <div class="mt-3 flex justify-end">
-<button onclick={submitReply} disabled={replying || !replyBody.trim()}
+<button onclick={submitComment} disabled={commenting || !commentBody.trim()}
 class="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50">
-{replying ? 'Posting...' : 'Post Reply'}
+{commenting ? 'Posting...' : 'Post Comment'}
 </button>
 </div>
 {:else}

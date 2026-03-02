@@ -7,12 +7,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		error(401, 'Not authenticated');
 	}
 
-	const { discussionId, body } = await request.json();
+	const { discussionId, body, replyToId } = await request.json();
 
 	if (!discussionId || !body?.trim()) {
 		error(400, 'Missing discussionId or body');
 	}
 
-	const comment = await addComment(locals.userToken, discussionId, body.trim());
+	const comment = await addComment(locals.userToken, discussionId, body.trim(), replyToId || null);
 	return json(comment);
 };
