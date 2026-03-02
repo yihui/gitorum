@@ -306,10 +306,10 @@ export async function fetchCategories(userToken?: string | null) {
 
 // ---------------------------------------------------------------------------
 // Page-cursor cache for numbered pagination (server-side, per process)
-// Key: `${categoryId}:${orderBy}`, Value: array of endCursors where
-// cursors[i] is the endCursor after page i+1 (used to fetch page i+2).
+// Key: `${categoryId}:${orderBy}`, Value: Map<pageNum, endCursor>
+// map.get(N) is the endCursor of page N (used as "after" to fetch page N+1).
 // ---------------------------------------------------------------------------
-const pageCursorCache = new Map<string, string[]>();
+const pageCursorCache = new Map<string, Map<number, string>>();
 
 // Comment-page cursor cache: Map<threadNumber, string[]>
 // cursors[i] = endCursor after comment page i+1 (used to fetch page i+2).
@@ -364,9 +364,459 @@ export async function fetchThreadsByCategory(
 }
 
 /**
+ * Fetch discussions without category filter (for the homepage).
+ */
+export async function fetchAllDiscussions(
+	first: number = 20,
+	after?: string,
+	orderBy: string = 'UPDATED_AT',
+	userToken?: string | null
+) {
+	const cacheKey = `allThreads:${first}:${after || ''}:${orderBy}`;
+	const cached = getCached<any>(cacheKey);
+	if (cached) return cached;
+
+	const owner = getRepoOwner();
+	const repo = getRepoName();
+	const token = await getReadToken(userToken);
+
+	if (!token) throw new Error('No API token available. Please configure a GitHub App.');
+
+	const result: any = await executeGraphQLRead(token, (gql) =>
+		gql(
+			`query($owner: String!, $repo: String!, $first: Int!, $after: String, $orderBy: DiscussionOrderField!) {
+				repository(owner: $owner, name: $repo) {
+					discussions(first: $first, after: $after, orderBy: { field: $orderBy, direction: DESC }) {
+						totalCount
+						pageInfo { hasNextPage endCursor }
+						nodes {
+							id number title createdAt isAnswered
+							author { login avatarUrl url }
+							category { id name slug emoji emojiHTML }
+							labels(first: 10) { nodes { name color } }
+							comments { totalCount }
+							reactions { totalCount }
+						}
+					}
+				}
+			}`,
+			{ owner, repo, first, after: after || null, orderBy }
+		)
+	);
+	const discussions = result.repository.discussions;
+	for (const d of discussions.nodes) parseCategoryEmoji(d.category);
+
+	setCache(cacheKey, discussions, 60);
+	return discussions;
+}
+
+// ---------------------------------------------------------------------------
+// Bidirectional pagination: fetch from end using `last`, build cursors from
+// whichever end is closer, and use `last: N` for pages near the end.
+// ---------------------------------------------------------------------------
+const CURSOR_BATCH_SIZE = 100;
+
+/** Lightweight query for totalCount (cached 60s). */
+async function getDiscussionTotalCount(
+	categoryId: string | null,
+	userToken?: string | null
+): Promise<number> {
+	const cacheKey = `totalCount:${categoryId || 'all'}`;
+	const cached = getCached<number>(cacheKey);
+	if (cached !== undefined) return cached;
+
+	const owner = getRepoOwner();
+	const repo = getRepoName();
+	const token = await getReadToken(userToken);
+	if (!token) throw new Error('No API token available. Please configure a GitHub App.');
+
+	const categoryParam = categoryId ? ', $categoryId: ID!' : '';
+	const categoryArg = categoryId ? ', categoryId: $categoryId' : '';
+	const variables: Record<string, unknown> = { owner, repo };
+	if (categoryId) variables.categoryId = categoryId;
+
+	const result: any = await executeGraphQLRead(token, (gql) =>
+		gql(
+			`query($owner: String!, $repo: String!${categoryParam}) {
+				repository(owner: $owner, name: $repo) {
+					discussions(first: 1${categoryArg}) { totalCount }
+				}
+			}`,
+			variables
+		)
+	);
+	const count = result.repository.discussions.totalCount;
+	setCache(cacheKey, count, 60);
+	return count;
+}
+
+/**
+ * Fetch threads for a category from the end using `last` parameter.
+ * Returns the last N items in the connection (for pages near the end).
+ */
+async function fetchThreadsByCategoryFromEnd(
+	categoryId: string,
+	last: number,
+	orderBy: string = 'UPDATED_AT',
+	userToken?: string | null
+) {
+	const cacheKey = `threadsLast:${categoryId}:${last}:${orderBy}`;
+	const cached = getCached<any>(cacheKey);
+	if (cached) return cached;
+
+	const owner = getRepoOwner();
+	const repo = getRepoName();
+	const token = await getReadToken(userToken);
+	if (!token) throw new Error('No API token available. Please configure a GitHub App.');
+
+	const result: any = await executeGraphQLRead(token, (gql) =>
+		gql(
+			`query($owner: String!, $repo: String!, $categoryId: ID!, $last: Int!, $orderBy: DiscussionOrderField!) {
+				repository(owner: $owner, name: $repo) {
+					discussions(last: $last, categoryId: $categoryId, orderBy: { field: $orderBy, direction: DESC }) {
+						totalCount
+						nodes {
+							id number title createdAt isAnswered
+							author { login avatarUrl url }
+							labels(first: 10) { nodes { name color } }
+							comments { totalCount }
+							reactions { totalCount }
+						}
+					}
+				}
+			}`,
+			{ owner, repo, categoryId, last, orderBy }
+		)
+	);
+	const discussions = result.repository.discussions;
+	setCache(cacheKey, discussions, 60);
+	return discussions;
+}
+
+/**
+ * Fetch all discussions from the end using `last` parameter.
+ */
+async function fetchAllDiscussionsFromEnd(
+	last: number,
+	orderBy: string = 'UPDATED_AT',
+	userToken?: string | null
+) {
+	const cacheKey = `allThreadsLast:${last}:${orderBy}`;
+	const cached = getCached<any>(cacheKey);
+	if (cached) return cached;
+
+	const owner = getRepoOwner();
+	const repo = getRepoName();
+	const token = await getReadToken(userToken);
+	if (!token) throw new Error('No API token available. Please configure a GitHub App.');
+
+	const result: any = await executeGraphQLRead(token, (gql) =>
+		gql(
+			`query($owner: String!, $repo: String!, $last: Int!, $orderBy: DiscussionOrderField!) {
+				repository(owner: $owner, name: $repo) {
+					discussions(last: $last, orderBy: { field: $orderBy, direction: DESC }) {
+						totalCount
+						nodes {
+							id number title createdAt isAnswered
+							author { login avatarUrl url }
+							category { id name slug emoji emojiHTML }
+							labels(first: 10) { nodes { name color } }
+							comments { totalCount }
+							reactions { totalCount }
+						}
+					}
+				}
+			}`,
+			{ owner, repo, last, orderBy }
+		)
+	);
+	const discussions = result.repository.discussions;
+	for (const d of discussions.nodes) parseCategoryEmoji(d.category);
+	setCache(cacheKey, discussions, 60);
+	return discussions;
+}
+
+/**
+ * Fetch a specific page by using `last: N` and slicing.
+ * Works when totalCount - (page-1)*perPage ≤ 100.
+ * The `last` result contains items from the requested page onward to the end;
+ * we slice the first `perPage` items which are exactly the requested page.
+ */
+async function fetchPageUsingLast(
+	categoryId: string | null,
+	page: number,
+	perPage: number,
+	totalCount: number,
+	orderBy: string,
+	userToken?: string | null
+) {
+	const lastParam = Math.min(totalCount - (page - 1) * perPage, CURSOR_BATCH_SIZE);
+	const data = categoryId
+		? await fetchThreadsByCategoryFromEnd(categoryId, lastParam, orderBy, userToken)
+		: await fetchAllDiscussionsFromEnd(lastParam, orderBy, userToken);
+
+	const pageNodes = data.nodes.slice(0, Math.min(perPage, data.nodes.length));
+	const totalPages = Math.max(1, Math.ceil(totalCount / perPage));
+
+	return {
+		totalCount: data.totalCount,
+		nodes: pageNodes,
+		pageInfo: { hasNextPage: page < totalPages, endCursor: null }
+	};
+}
+
+// ---------------------------------------------------------------------------
+// Forward cursor building (from start): fetch 100 edges at a time
+// ---------------------------------------------------------------------------
+async function fetchCursorEdges(
+	batchSize: number,
+	after: string | undefined,
+	orderBy: string,
+	categoryId: string | null,
+	userToken?: string | null
+): Promise<Array<{ cursor: string }>> {
+	const owner = getRepoOwner();
+	const repo = getRepoName();
+	const token = await getReadToken(userToken);
+	if (!token) throw new Error('No API token available. Please configure a GitHub App.');
+
+	const categoryParam = categoryId ? ', $categoryId: ID!' : '';
+	const categoryArg = categoryId ? ', categoryId: $categoryId' : '';
+	const variables: Record<string, unknown> = { owner, repo, first: batchSize, after: after || null, orderBy };
+	if (categoryId) variables.categoryId = categoryId;
+
+	const result: any = await executeGraphQLRead(token, (gql) =>
+		gql(
+			`query($owner: String!, $repo: String!, $first: Int!, $after: String, $orderBy: DiscussionOrderField!${categoryParam}) {
+				repository(owner: $owner, name: $repo) {
+					discussions(first: $first${categoryArg}, after: $after, orderBy: { field: $orderBy, direction: DESC }) {
+						edges { cursor }
+					}
+				}
+			}`,
+			variables
+		)
+	);
+	return result.repository.discussions.edges;
+}
+
+// ---------------------------------------------------------------------------
+// Backward cursor building (from end): fetch 100 edges using `last`
+// ---------------------------------------------------------------------------
+async function fetchCursorEdgesFromEnd(
+	batchSize: number,
+	before: string | undefined,
+	orderBy: string,
+	categoryId: string | null,
+	userToken?: string | null
+): Promise<Array<{ cursor: string }>> {
+	const owner = getRepoOwner();
+	const repo = getRepoName();
+	const token = await getReadToken(userToken);
+	if (!token) throw new Error('No API token available. Please configure a GitHub App.');
+
+	const categoryParam = categoryId ? ', $categoryId: ID!' : '';
+	const categoryArg = categoryId ? ', categoryId: $categoryId' : '';
+	const variables: Record<string, unknown> = { owner, repo, last: batchSize, before: before || null, orderBy };
+	if (categoryId) variables.categoryId = categoryId;
+
+	const result: any = await executeGraphQLRead(token, (gql) =>
+		gql(
+			`query($owner: String!, $repo: String!, $last: Int!, $before: String, $orderBy: DiscussionOrderField!${categoryParam}) {
+				repository(owner: $owner, name: $repo) {
+					discussions(last: $last${categoryArg}, before: $before, orderBy: { field: $orderBy, direction: DESC }) {
+						edges { cursor }
+					}
+				}
+			}`,
+			variables
+		)
+	);
+	return result.repository.discussions.edges;
+}
+
+// ---------------------------------------------------------------------------
+// Cursor cache helpers
+// ---------------------------------------------------------------------------
+
+function getCachedCursor(storeKey: string, pageNum: number): string | undefined {
+	return pageCursorCache.get(storeKey)?.get(pageNum);
+}
+
+function cacheCursor(storeKey: string, pageNum: number, cursor?: string | null): void {
+	if (!cursor) return;
+	let map = pageCursorCache.get(storeKey);
+	if (!map) {
+		map = new Map();
+		pageCursorCache.set(storeKey, map);
+	}
+	map.set(pageNum, cursor);
+}
+
+/**
+ * Build page-boundary cursors from the START of the connection.
+ * Each batch of 100 edges yields ~5 page cursors (100 / perPage).
+ */
+async function buildCursorsFromStart(
+	storeKey: string,
+	targetPage: number,
+	perPage: number,
+	orderBy: string,
+	categoryId: string | null,
+	userToken?: string | null
+): Promise<void> {
+	if (getCachedCursor(storeKey, targetPage - 1)) return;
+
+	// Find the highest consecutive page cursor from start
+	let lastBuiltPage = 0;
+	for (let p = 1; p < targetPage; p++) {
+		if (getCachedCursor(storeKey, p)) {
+			lastBuiltPage = p;
+		} else {
+			break;
+		}
+	}
+
+	while (lastBuiltPage < targetPage - 1) {
+		const afterCursor = lastBuiltPage > 0 ? getCachedCursor(storeKey, lastBuiltPage) : undefined;
+		const edges = await fetchCursorEdges(CURSOR_BATCH_SIZE, afterCursor, orderBy, categoryId, userToken);
+		if (edges.length === 0) break;
+
+		// Extract page boundary cursors: every perPage-th edge
+		for (let i = perPage - 1; i < edges.length; i += perPage) {
+			const pageNum = lastBuiltPage + Math.floor(i / perPage) + 1;
+			cacheCursor(storeKey, pageNum, edges[i].cursor);
+		}
+
+		lastBuiltPage += Math.floor(edges.length / perPage);
+		if (edges.length < CURSOR_BATCH_SIZE) break;
+	}
+}
+
+/**
+ * Build page-boundary cursors from the END of the connection.
+ * Uses `last` + `before` to walk backward through the list.
+ * Each batch of 100 edges yields ~5 page cursors.
+ */
+async function buildCursorsFromEnd(
+	storeKey: string,
+	targetPage: number,
+	perPage: number,
+	totalCount: number,
+	orderBy: string,
+	categoryId: string | null,
+	userToken?: string | null
+): Promise<void> {
+	if (getCachedCursor(storeKey, targetPage - 1)) return;
+
+	let fetchedFromEnd = 0;
+	let beforeCursor: string | undefined = undefined;
+
+	while (!getCachedCursor(storeKey, targetPage - 1)) {
+		const edges = await fetchCursorEdgesFromEnd(
+			CURSOR_BATCH_SIZE, beforeCursor, orderBy, categoryId, userToken
+		);
+		if (edges.length === 0) break;
+
+		// This batch covers items at positions:
+		//   batchStart .. batchEnd (1-indexed)
+		const batchStart = totalCount - fetchedFromEnd - edges.length + 1;
+		const batchEnd = totalCount - fetchedFromEnd;
+
+		// Page boundary: position P (multiple of perPage) is endCursor of page P/perPage
+		const firstBoundary = Math.ceil(batchStart / perPage) * perPage;
+		for (let pos = firstBoundary; pos <= batchEnd; pos += perPage) {
+			const pageNum = Math.floor(pos / perPage);
+			const idx = pos - batchStart; // 0-indexed in edges
+			if (idx >= 0 && idx < edges.length) {
+				cacheCursor(storeKey, pageNum, edges[idx].cursor);
+			}
+		}
+
+		fetchedFromEnd += edges.length;
+		// Use first edge's cursor as `before` for the next backward batch
+		beforeCursor = edges[0].cursor;
+
+		if (edges.length < CURSOR_BATCH_SIZE) break;
+	}
+}
+
+/**
+ * Unified page fetcher. Picks the cheapest strategy:
+ * 1. Page 1 → forward fetch (no cursor)
+ * 2. Cached cursor → forward fetch
+ * 3. Pages near end (≤100 items from end) → `last: N` fetch (O(1) API calls)
+ * 4. Otherwise → build cursor chain from closer end, then forward fetch
+ */
+async function fetchDiscussionPage(
+	storeKey: string,
+	categoryId: string | null,
+	page: number,
+	perPage: number,
+	orderBy: string,
+	userToken?: string | null
+) {
+	const fetchData = (after?: string) => categoryId
+		? fetchThreadsByCategory(categoryId, perPage, after, orderBy, userToken)
+		: fetchAllDiscussions(perPage, after, orderBy, userToken);
+
+	// Page 1: no cursor needed
+	if (page === 1) {
+		const data = await fetchData();
+		cacheCursor(storeKey, 1, data?.pageInfo?.endCursor);
+		return data;
+	}
+
+	// Check cached forward cursor
+	const cached = getCachedCursor(storeKey, page - 1);
+	if (cached) {
+		const data = await fetchData(cached);
+		cacheCursor(storeKey, page, data?.pageInfo?.endCursor);
+		return data;
+	}
+
+	// Need totalCount to determine strategy
+	const totalCount = await getDiscussionTotalCount(categoryId, userToken);
+	const totalPages = Math.max(1, Math.ceil(totalCount / perPage));
+	const effectivePage = Math.min(page, totalPages);
+
+	// Can fetch from end directly? (within 100 items)
+	const itemsFromEnd = totalCount - (effectivePage - 1) * perPage;
+	if (itemsFromEnd <= CURSOR_BATCH_SIZE) {
+		return fetchPageUsingLast(categoryId, effectivePage, perPage, totalCount, orderBy, userToken);
+	}
+
+	// Build cursor chain from whichever end is closer
+	const distFromStart = effectivePage - 1;
+	const distFromEnd = totalPages - effectivePage;
+
+	if (distFromEnd < distFromStart) {
+		await buildCursorsFromEnd(storeKey, effectivePage, perPage, totalCount, orderBy, categoryId, userToken);
+	} else {
+		await buildCursorsFromStart(storeKey, effectivePage, perPage, orderBy, categoryId, userToken);
+	}
+
+	// Use the built cursor
+	const cursor = getCachedCursor(storeKey, effectivePage - 1);
+	if (cursor) {
+		const data = await fetchData(cursor);
+		cacheCursor(storeKey, effectivePage, data?.pageInfo?.endCursor);
+		return data;
+	}
+
+	// Last resort: fetch from end if possible
+	if (itemsFromEnd > 0) {
+		return fetchPageUsingLast(categoryId, effectivePage, perPage, totalCount, orderBy, userToken);
+	}
+
+	// Absolute fallback
+	return fetchData();
+}
+
+/**
  * Fetch a specific page of threads for a category.
- * Uses a server-side cursor cache so any page can be accessed directly.
- * On first access of page N, pages 1…N-1 are fetched to build the cursor chain.
+ * Uses bidirectional pagination: `last` for pages near the end (O(1)),
+ * cursor building from the closer end for other pages.
  */
 export async function fetchThreadsByPage(
 	categoryId: string,
@@ -375,33 +825,19 @@ export async function fetchThreadsByPage(
 	orderBy: string = 'UPDATED_AT',
 	userToken?: string | null
 ) {
-	const storeKey = `${categoryId}:${orderBy}`;
-	let cursors = pageCursorCache.get(storeKey) || [];
+	return fetchDiscussionPage(`${categoryId}:${orderBy}`, categoryId, page, perPage, orderBy, userToken);
+}
 
-	// Build up cursors up to the page we need (cursors[i] = endCursor of page i+1)
-	if (page > 1 && cursors.length < page - 1) {
-		for (let p = cursors.length + 1; p < page; p++) {
-			const prevCursor = cursors.length > 0 ? cursors[cursors.length - 1] : undefined;
-			const res = await fetchThreadsByCategory(categoryId, perPage, prevCursor, orderBy, userToken);
-			if (res?.pageInfo?.endCursor) {
-				cursors = [...cursors, res.pageInfo.endCursor];
-				pageCursorCache.set(storeKey, cursors);
-			} else {
-				break; // No more pages
-			}
-		}
-	}
-
-	const cursor = page > 1 ? cursors[page - 2] : undefined;
-	const data = await fetchThreadsByCategory(categoryId, perPage, cursor, orderBy, userToken);
-
-	// Cache endCursor for next page
-	if (data?.pageInfo?.hasNextPage && data.pageInfo.endCursor && cursors.length < page) {
-		cursors = [...cursors, data.pageInfo.endCursor];
-		pageCursorCache.set(storeKey, cursors);
-	}
-
-	return data;
+/**
+ * Fetch a specific page of all discussions (homepage, no category filter).
+ */
+export async function fetchAllDiscussionsByPage(
+	page: number,
+	perPage: number = 20,
+	orderBy: string = 'UPDATED_AT',
+	userToken?: string | null
+) {
+	return fetchDiscussionPage(`all:${orderBy}`, null, page, perPage, orderBy, userToken);
 }
 
 export async function fetchThread(number: number, commentPage: number = 1, userToken?: string | null): Promise<any> {

@@ -4,6 +4,7 @@ declare global {
 		interface Locals {
 			user: { login: string; avatarUrl: string } | null;
 			userToken: string | null;
+			authError?: string | null;
 		}
 	}
 }

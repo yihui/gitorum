@@ -153,7 +153,7 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 </div>
 
 {#if data.totalPages > 1}
-<nav class="flex items-center justify-center gap-1 text-sm" aria-label="Pagination">
+<nav class="flex items-center justify-center gap-1 text-sm" aria-label="Pagination" data-sveltekit-preload-data="off">
 {#if data.page > 1}
 <a href={pageUrl(data.page - 1)} class="rounded border border-gray-300 px-3 py-1.5 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">‹</a>
 {/if}

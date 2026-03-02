@@ -9,6 +9,25 @@ const SORTS = [
 	{ key: 'top',    label: 'Top' },
 	{ key: 'trending', label: 'Trending' },
 ] as const;
+
+const PAGES_AROUND_CURRENT = 2;
+const MAX_PAGES_WITHOUT_ELLIPSIS = 7;
+
+function pageUrl(p: number) {
+	return `/?page=${p}&sort=${data.sort}`;
+}
+
+function pageNumbers(current: number, total: number): (number | null)[] {
+	if (total <= MAX_PAGES_WITHOUT_ELLIPSIS) return Array.from({ length: total }, (_, i) => i + 1);
+	const pages: (number | null)[] = [];
+	const add = (n: number) => { if (!pages.includes(n)) pages.push(n); };
+	add(1);
+	if (current - PAGES_AROUND_CURRENT > 2) pages.push(null);
+	for (let p = Math.max(2, current - PAGES_AROUND_CURRENT); p <= Math.min(total - 1, current + PAGES_AROUND_CURRENT); p++) add(p);
+	if (current + PAGES_AROUND_CURRENT < total - 1) pages.push(null);
+	add(total);
+	return pages;
+}
 </script>
 
 <svelte:head>
@@ -144,6 +163,27 @@ style="background-color:#{label.color}22;color:#{label.color};border-color:#{lab
 <div class="rounded-lg border border-amber-200 bg-white p-8 text-center dark:border-gray-800 dark:bg-gray-900">
 <p class="text-gray-500 dark:text-gray-400">No discussions yet.</p>
 </div>
+{/if}
+
+{#if data.totalPages > 1}
+<nav class="flex items-center justify-center gap-1 text-sm" aria-label="Pagination" data-sveltekit-preload-data="off">
+{#if data.page > 1}
+<a href={pageUrl(data.page - 1)} class="rounded border border-gray-300 px-3 py-1.5 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">‹</a>
+{/if}
+{#each pageNumbers(data.page, data.totalPages) as p}
+{#if p === null}
+<span class="px-1 text-gray-400">…</span>
+{:else}
+<a href={pageUrl(p)}
+class="rounded border px-3 py-1.5 {p === data.page ? 'border-orange-500 bg-orange-50 font-semibold text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' : 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800'}"
+aria-current={p === data.page ? 'page' : undefined}
+>{p}</a>
+{/if}
+{/each}
+{#if data.page < data.totalPages}
+<a href={pageUrl(data.page + 1)} class="rounded border border-gray-300 px-3 py-1.5 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">›</a>
+{/if}
+</nav>
 {/if}
 </section>
 
