@@ -1,6 +1,8 @@
-import { fetchCategories, fetchRepoId, createDiscussion } from '$lib/server/github';
+import { fetchCategories, fetchRepoId, createDiscussion, getRepoOwner } from '$lib/server/github';
+import { isCategoryHidden, isCategoryOwnerOnly } from '$lib/server/config';
 import { redirect, error } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
+import type { Category } from '$lib/types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
@@ -10,8 +12,19 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const categoryId = url.searchParams.get('categoryId') || '';
 
 	try {
-		const categories = await fetchCategories(locals.userToken);
-		return { categories: categories || [], categoryId };
+		const allCategories = await fetchCategories(locals.userToken);
+		const repoOwner = getRepoOwner();
+		const isOwner = locals.user.login === repoOwner;
+
+		// Remove hidden categories entirely, and restrict owner-only categories
+		// to the repo owner.
+		const categories = (allCategories || []).filter((c: Category) => {
+			if (isCategoryHidden(c.slug)) return false;
+			if (isCategoryOwnerOnly(c.slug) && !isOwner) return false;
+			return true;
+		});
+
+		return { categories, categoryId };
 	} catch (err) {
 		console.error('Failed to load categories for new thread page:', err);
 		error(503, 'Could not load discussion categories. Please check your GitHub App configuration.');

@@ -1,0 +1,6 @@
+{
+  "categories": {
+    "hidden": ["polls"],
+    "ownerOnly": ["comments"]
+  }
+}

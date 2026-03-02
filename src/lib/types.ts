@@ -4,6 +4,7 @@ export interface Category {
 	description: string;
 	emoji: string;
 	slug: string;
+	isAnswerable?: boolean;
 }
 
 export interface Author {

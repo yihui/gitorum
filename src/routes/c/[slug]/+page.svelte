@@ -50,9 +50,7 @@ return pages;
 {/if}
 </div>
 <div class="flex items-center gap-2">
-{#if data.user}
 <a href="/new?categoryId={data.category.id}" class="rounded-md bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-700">New Thread</a>
-{/if}
 <a href="/c/{data.category.slug}?sort=UPDATED_AT"
 class="rounded px-3 py-1 text-sm {data.sort === 'UPDATED_AT' || !data.sort ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'}">
 Latest
