@@ -1,14 +1,8 @@
 import { fetchCategories, fetchRepoId, createDiscussion, getRepoOwner } from '$lib/server/github';
+import { isCategoryHidden, isCategoryOwnerOnly } from '$lib/server/config';
 import { redirect, error } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import type { Category } from '$lib/types';
-
-/** Returns true if the category is announcement-only (not for general posting). */
-function isAnnouncementCategory(category: Category): boolean {
-	const name = (category.name || '').toLowerCase();
-	const slug = (category.slug || '').toLowerCase();
-	return name.includes('announcement') || slug.includes('announcement');
-}
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
@@ -22,10 +16,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		const repoOwner = getRepoOwner();
 		const isOwner = locals.user.login === repoOwner;
 
-		// Hide announcement categories from non-repo-owners.
-		const categories = isOwner
-			? allCategories || []
-			: (allCategories || []).filter((c: Category) => !isAnnouncementCategory(c));
+		// Remove hidden categories entirely, and restrict owner-only categories
+		// to the repo owner.
+		const categories = (allCategories || []).filter((c: Category) => {
+			if (isCategoryHidden(c.slug)) return false;
+			if (isCategoryOwnerOnly(c.slug) && !isOwner) return false;
+			return true;
+		});
 
 		return { categories, categoryId };
 	} catch (err) {

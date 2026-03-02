@@ -1,4 +1,5 @@
 import { fetchCategoryBySlug, fetchThreadsByPage, fetchPinnedDiscussions, fetchTopDiscussions, RateLimitError } from '$lib/server/github';
+import { isCategoryHidden } from '$lib/server/config';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
@@ -11,6 +12,9 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 			fetchPinnedDiscussions(locals.userToken).catch(() => [])
 		]);
 		if (!category) error(404, 'Category not found');
+
+		// Treat hidden categories as if they don't exist.
+		if (isCategoryHidden(category.slug)) error(404, 'Category not found');
 
 		const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1);
 		const sort = url.searchParams.get('sort') || 'UPDATED_AT';

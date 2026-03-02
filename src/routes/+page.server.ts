@@ -1,4 +1,5 @@
 import { fetchCategories, fetchAllDiscussionsByPage, fetchPinnedDiscussions, fetchTopDiscussions, RateLimitError } from '$lib/server/github';
+import { isCategoryHidden } from '$lib/server/config';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
@@ -8,10 +9,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const sort = url.searchParams.get('sort') || 'latest';
 	const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1);
 	try {
-		const [categories, pinned] = await Promise.all([
+		const [allCategories, pinned] = await Promise.all([
 			fetchCategories(locals.userToken),
 			fetchPinnedDiscussions(locals.userToken)
 		]);
+
+		// Filter out hidden categories from the sidebar navigation.
+		const categories = (allCategories || []).filter((c: any) => !isCategoryHidden(c.slug));
 
 		if (sort === 'top' || sort === 'trending') {
 			const threads = await fetchTopDiscussions(sort, null, 30, locals.userToken);

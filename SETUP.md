@@ -14,9 +14,46 @@ This guide walks you through setting up Gitorum as a forum administrator.
 
 ---
 
-## 2. Environment Variables
+## 2. Forum Configuration (`gitorum.config.json`)
 
-Gitorum is configured entirely through environment variables. **Secret variables (tokens, keys, client secrets) should never be stored in `.env` files committed to version control.** Instead, set them via your hosting platform's dashboard (see [Deployment](#6-deployment)).
+Non-secret, structural configuration lives in **`gitorum.config.json`** at the project root. Edit this file and redeploy to apply changes.
+
+```json
+{
+  "categories": {
+    "hidden": [],
+    "ownerOnly": []
+  }
+}
+```
+
+### Category settings
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `categories.hidden` | `string[]` | Slugs of GitHub Discussion categories that should be completely invisible in the forum — they won't appear in any listing or sidebar, and their direct `/c/<slug>` URL returns 404. Useful for internal or poll categories you don't want to expose. |
+| `categories.ownerOnly` | `string[]` | Slugs of categories where only the repository owner may create new threads. Readers can still browse existing threads; the category is simply hidden from the "New Thread" dropdown for everyone else. Useful for announcement categories. |
+
+### Example
+
+```json
+{
+  "categories": {
+    "hidden": ["polls"],
+    "ownerOnly": ["announcements"]
+  }
+}
+```
+
+> **Note:** Category slugs are the URL-safe identifiers GitHub assigns to each Discussion category. You can find a category's slug in the GitHub Discussions URL: `https://github.com/<owner>/<repo>/discussions/categories/<slug>`.
+
+This file is also the right place for future structural settings such as header/footer navigation menus.
+
+---
+
+## 3. Environment Variables
+
+Gitorum uses a combination of a config file (`gitorum.config.json`, described above) for structural settings and environment variables for secrets and deployment-specific values. **Secret variables (tokens, keys, client secrets) should never be stored in `.env` files committed to version control.** Instead, set them via your hosting platform's dashboard (see [Deployment](#7-deployment)).
 
 The `.env.example` file documents all supported variables but does not contain real values. For local development, you can create a `.env` file — just make sure it stays in `.gitignore` (which it is by default).
 
@@ -60,7 +97,7 @@ The `.env.example` file documents all supported variables but does not contain r
 
 ---
 
-## 3. Setting Up a GitHub App (Required)
+## 4. Setting Up a GitHub App (Required)
 
 A GitHub App provides automatic short-lived token generation (tokens expire after 1 hour and are renewed automatically). When a token's rate limit is exhausted, Gitorum will automatically generate a new one and retry the request.
 
@@ -123,7 +160,7 @@ When these are set, Gitorum will automatically generate short-lived installation
 
 ---
 
-## 4. Setting Up GitHub OAuth (for user sign-in)
+## 5. Setting Up GitHub OAuth (for user sign-in)
 
 This allows users to sign in and create threads/replies.
 
@@ -148,7 +185,7 @@ This allows users to sign in and create threads/replies.
 
 ---
 
-## 5. Caching Strategy
+## 6. Caching Strategy
 
 ### Server-Side In-Memory Cache (built-in)
 
@@ -176,7 +213,7 @@ Page **performance** is not significantly impacted: the in-memory cache absorbs 
 
 ---
 
-## 6. Deployment
+## 7. Deployment
 
 ### Cloudflare Pages (recommended)
 
@@ -199,7 +236,7 @@ Page **performance** is not significantly impacted: the in-memory cache absorbs 
 
 ---
 
-## 7. Environment Variables Reference
+## 8. Environment Variables Reference
 
 The following variables are supported. **Set secret values on your hosting platform, not in code.**
 

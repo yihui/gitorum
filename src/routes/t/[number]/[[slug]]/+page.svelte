@@ -265,9 +265,7 @@ title={rc}>{reactionEmoji(rc)}</button>
 <span>›</span>
 <span class="text-gray-700 dark:text-gray-200">Thread</span>
 </div>
-{#if data.user}
 <a href="/new" class="rounded-md bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-700">New Thread</a>
-{/if}
 </div>
 
 <!-- Original post -->
